@@ -1,0 +1,614 @@
+####    Card type    ####
+
+#   change Card type to record format of card
+#   change Card type to record index & value of value, separator, rpad, and comment fields
+#   add HIERARCH keyword conventions
+#   add parsing of non-stardard formats
+#   add splitting of long strings at spaces
+
+const CARDLENGTH::Int = 80
+const BLANKCARD::String = repeat(" ", CARDLENGTH)
+const KEYLENGTH::Int = 8
+const BLANKKEY::String = repeat(" ", KEYLENGTH)
+const FIXEDINDEX::Int = 30
+
+const EQUAL_TOKEN::String = "= "
+const HIERARCH_EQUAL_TOKEN::String = "="
+
+#  regex for a FITS standard compliant (FSC) keyword.
+const KEY_FSC = Regex("^[A-Z0-9_-]{0," * string(KEYLENGTH) * "}\$")
+const NON_KEY_TEXT = Regex("[^A-Z0-9_-]")
+#  regex for any printable ASCII character excluding '='.
+const KEY_HIERARCH = Regex("^(?:HIERARCH +)?(?:^[ -<>-~]+ ?)+\$", "i")
+
+#  regex for FSC real number substring.
+const DIGITS_FSC_STR  = "(\\.\\d+|\\d+(\\.\\d*)?)([DE][+-]?\\d+)?"
+const NUMBER_FSC_STR  = "[+-]?" * DIGITS_FSC_STR
+#  regex for non-FSC (NFSC) real number substring.
+#  (NFSC allows lower case of DE for exponent, space between sign,
+#  digits, exponent sign, and exponents.)
+const DIGITS_NFSC_STR = "(\\.\\d+|\\d+(\\.\\d*)?) *([deDE] *[+-]? *\\d+)?"
+const NUMBER_NFSC_STR = "[+-]?" * DIGITS_NFSC_STR
+
+#  regex helps delete leading zeros from numbers to avoid evaluating
+#  them as octol values.
+const NUMBER_FSC  = Regex("(?P<sign>[+-])?0*?(?P<digt>" * DIGITS_FSC_STR * ")")
+const NUMBER_NFSC = Regex("(?P<sign>[+-])? *0*?(?P<digt>" * DIGITS_NFSC_STR * ")")
+
+#  use in cards having the CONTINUE convention which expects a string
+#  followed by an optional comment.
+const STRING_FIELD_STR = "\\'(?P<strg>([ -~]+?|\\'\\'|) *?)\\'(?=\$|/| )"
+const COMMENT_FIELD_STR = "(?P<comm_field>(?P<sepr>/ *)(?P<comm>(.|\\n)*))"
+const STRING_COMMENT = Regex("(" * STRING_FIELD_STR * ")? *" * COMMENT_FIELD_STR * "?")
+
+#  FSC commentary card string which must contain printable ASCII
+#  characters.
+const ASCII_TEXT = Regex("[ -~]*\\Z")
+const NON_ASCII_TEXT = Regex("[^ -~]")
+
+#  check for a valid value & comment string. The value group returns a
+#  match for a FITS string, boolean, number, and complex value,
+#  otherwise it returns 'missing'. The comment field returns a match
+#  when the comment separator is found, though the comment may be an
+#  empty string.
+#
+#  The <strg> regex is not correct for all cases, but it comes pretty
+#  darn close.  It appears to find the end of a string rather well,
+#  but will accept strings with an odd number of single quotes,
+#  instead of issuing an error.  The FITS standard appears vague on
+#  this issue and only states that a string should not end with two
+#  single quotes, whereas it should not end with an even number of
+#  quotes to be precise.
+#
+#  Note that a non-greedy match is done for a string, since a greedy
+#  match will find a single-quote after the comment separator
+#  resulting in an incorrect match.
+const VALUE_FSC  = Regex(
+    "(?P<valu_field> *" *
+    "(?P<valu>" * STRING_FIELD_STR * "|(?P<bool>[FT])|" *
+    "(?P<numr>" * NUMBER_FSC_STR * ")|(?P<cplx>\\( *" *
+    "(?P<real>" * NUMBER_FSC_STR * ") *, *(?P<imag>" * NUMBER_FSC_STR * ") *\\)))? *)" *
+    "(?P<comm_field>(?P<sepr>/ *)(?P<comm>[!-~][ -~]*)?)?\$")
+
+const VALUE_NFSC = Regex(
+    "(?P<valu_field> *" *
+    "(?P<valu>" * STRING_FIELD_STR * "|(?P<bool>[FT])|" *
+    "(?P<numr>" * NUMBER_NFSC_STR * ")|(?P<cplx>\\( *" *
+    "(?P<real>" * NUMBER_NFSC_STR * ") *, *(?P<imag>" * NUMBER_NFSC_STR * ") *\\)))? *)" *
+    COMMENT_FIELD_STR *"?\$")
+
+const RECORD_KEY_IDENTIFIER_STR = "[a-zA-Z_]\\w*"
+const RECORD_KEY_FIELD_STR = RECORD_KEY_IDENTIFIER_STR * "(\\.\\d+)?"
+const RECORD_KEY_FIELD_SPECIFIER_STR = RECORD_KEY_FIELD_STR * "(\\." * RECORD_KEY_FIELD_STR * ")*"
+const RECORD_KEY_FIELD_SPECIFIER_VALUE_STR =
+    "(?P<keyword>" * RECORD_KEY_FIELD_SPECIFIER_STR * "): +(?P<val>" * NUMBER_FSC_STR * ")"
+const RECORD_KEY_VALUE_STR = "\\'(?P<rawval>" * RECORD_KEY_FIELD_SPECIFIER_VALUE_STR * ")\\'"
+const RECORD_KEY_VALUE_COMMENT_STR = " *" * RECORD_KEY_VALUE_STR * " *(/ *(?P<comm>[ -~]*))?\$"
+
+const RECORD_KEY_FIELD_SPECIFIER_VALUE = Regex(RECORD_KEY_FIELD_SPECIFIER_VALUE_STR * "\$")
+
+#  regular expression to extract the key and the field specifier from
+#  a string that is being used to index into a card list that contains
+#  record value keyword cards (e.g., "DPI.AXIS.1")
+const RECORD_KEY_NAME = Regex(
+    "(?P<keyword>" * RECORD_KEY_IDENTIFIER_STR * ")\\.(?P<specifier>" * RECORD_KEY_FIELD_SPECIFIER_STR * ")\$")
+
+const COMMENT_KEYS = ["", "COMMENT", "HISTORY", "END"]
+const SPECIAL_KEYS = vcat(COMMENT_KEYS, ["CONTINUE"])
+
+#  the default value indicator may be changed if required by
+#  convention (namely HIERARCH cards).
+equal_token = EQUAL_TOKEN
+
+# struct Date
+# end
+
+ValueType = Union{AbstractString, Missing, Number}
+
+abstract type AbstractCard end
+abstract type CommentCard <: AbstractCard end
+
+struct Continue    <: AbstractCard end
+struct End         <: AbstractCard end
+struct Hierarch{T} <: AbstractCard where T<:ValueType end
+struct Invalid     <: AbstractCard end
+struct Value{T}    <: AbstractCard where T<:ValueType end
+
+struct Comment     <: CommentCard end
+struct History     <: CommentCard end
+
+const COMMENTKEY = Dict(""=>Comment, "COMMENT"=>Comment, "HISTORY"=>History)
+
+struct Card{T<:AbstractCard}
+    key::AbstractString
+    value::ValueType
+    comment::AbstractString
+    image::AbstractString
+    function Card(T, key, value, comment, image)
+        new{T}(key, value, comment, image)
+    end
+end
+
+function Card(key::S="", value::V=missing, comment::S=""; append::B=false,
+              fixed::B=true, slashpos::I=32, slashlpad::I=1, slashrpad::I=1,
+              truncate::B=false, valuesep::Pair{S,S} ="."=>" ") where
+    {B<: Bool, I<:Integer, S<:AbstractString, V<:ValueType}
+
+    #  Convert key to uppercase and remove trailing spaces.
+
+    upkey = uppercase(strip(key))
+
+    #  !!! Currently, checks are for 'strict' standard.
+
+    if slashpos < 21
+        error("Comment separator postion must be >20")
+    end
+
+    #  Check for invalid characters in key, value string, and comment.
+
+    if !is_hierarch(upkey) && occursin(NON_KEY_TEXT, upkey)
+        error("Keyword contains invalid characters.")
+    elseif value !== missing && typeof(value) <: AbstractString && occursin(NON_ASCII_TEXT, value)
+        error("Value string contains invalid characters.")
+    elseif comment !== missing && occursin(NON_ASCII_TEXT, comment)
+        error("Comment contains invalid characters.")
+    end
+
+    kwds = NamedTuple{
+        (:append, :fixed, :slashlpad, :slashpos, :slashrpad, :truncate, :valuesep)}(
+            (append, is_fixed_key(key) ? true : fixed, slashlpad, slashpos, slashrpad,
+             truncate, valuesep))
+    
+    #  Format card image from key, value, and comment arguments and construct Card.
+    #  Card is a parametric type containing Comment, Continue, End, Hierarch, History,
+    #  and Value types. Card images can be in fixed- or free-formats.
+    #
+    #  The Value and Hierarch types are parametric types of Missing, Number, and String types.
+
+    if is_end_key(upkey)
+        type, value, comment = End, missing, ""
+    elseif is_continue_key(upkey) && is_string(value)
+        type = Continue
+    elseif is_comment_key(upkey)
+        type = COMMENTKEY[upkey]
+    elseif is_hierarch(upkey)
+        type = Hierarch{typeof(value)}
+    elseif is_valid_key(upkey)
+        if typeof(value) <: AbstractString && is_long_strings(value, comment; kwds...)
+            #  for long string values, create array of Value and Continue cards
+            return [Card(t, k, v, c, format_image(t, k, v, c; kw...))
+                    for (t, k, v, c, kw) in splitcard(upkey, value, comment; kwds...)]
+        else
+            type = Value{typeof(value)}
+        end
+    else
+        error("Invalid card")
+    end
+
+    Card(type, upkey, value, comment, format_image(basename(type), upkey, value, comment; kwds...))
+end
+
+#  check key type
+is_end_key(key::AbstractString)      = key == "END"
+is_continue_key(key::AbstractString) = key == "CONTINUE"
+is_comment_key(key::AbstractString)  = haskey(COMMENTKEY, key)
+is_hierarch_key(key::AbstractString) = key == "HIERARCH"
+is_valid_key(key::AbstractString)    = length(key) <= KEYLENGTH && occursin(KEY_FSC, key)
+
+function is_fixed_key(key::AbstractString)
+    key in ["BITPIX", "END", "NAXIS", "SIMPLE"] || !isnothing(match(r"NAXIS\d{1,3}", key))
+end
+
+function is_hierarch(key::AbstractString)
+    key[1:min(length(key),8)] == "HIERARCH" || (length(key) > KEYLENGTH && occursin(ASCII_TEXT, key))
+end
+is_missing(value::ValueType) = value === missing
+is_string(value::ValueType) = typeof(value) <: AbstractString ? true : error("Value is not a string.")
+
+function is_long_strings(value::S, comment::S; kwd...) where S<:AbstractString
+    #  Test for long value and comment strings. Return true if found, except in the case where
+    #  the comment can be truncated, i.e., truncate == true.
+    length(replace(value, "'" => "''")) > value_length(kwd) ||
+        (!kwd[:truncate] && length(comment) > comment_length(kwd))
+end
+
+basename(T) = Base.typename(T).wrapper
+typename(::Card{T}) where T = T
+
+function value_length(kwd)
+    #  Calculate length of value based comment separator index and padding.
+    #  First 2 is for value indicator. Second 2 is single quotes.
+    ((kwd[:slashpos] - kwd[:slashlpad]) > CARDLENGTH ?
+     CARDLENGTH : kwd[:slashpos] - kwd[:slashlpad] - 1) - (KEYLENGTH + 2 + 2)
+end
+
+function comment_length(kwd)
+    (kwd[:slashpos] + kwd[:slashrpad]) >= CARDLENGTH ?
+        0 : CARDLENGTH - (kwd[:slashpos] + kwd[:slashrpad])
+end
+rpad_key(key, n=0) = rpad(key, KEYLENGTH + n)
+
+"""
+    splitcard(key::S, value::S, comment::S; kwd...) where S<:AbstractString
+
+Split card having long value and comment fields into multiple cards
+
+If length of comment field is 0 because comment separator index is too large,
+then comment is deleted.  Decreasing comment separator index will allow
+inclusion of comment.
+"""
+function splitcard(key::S, value::S, comment::S; kwd...) where S<:AbstractString
+
+    vallen, comlen = value_length(kwd) - 1, comment_length(kwd)
+    #  Calculate number of cards, adjusting for ampersand and single quotes.
+    nquot = length(replace(value, "'" => "''")) - length(value)
+    ncard = max(div(length(value) + nquot, vallen, RoundUp),
+                comlen == 0 ? 1 : div(length(comment), comlen, RoundUp))
+    #  Create arrays of card types, keywords, values, comments, and formatting keywords
+    #  for each card. Ensure ampersand is appended to each value string, except last.
+    types    = vcat([Value], fill(Continue, ncard-1))
+    keys     = vcat([key], fill("CONTINUE", ncard-1))
+    values   = [value[j1:j2] for (j1, j2) in slices(value, vallen, ncard, true)]
+    comments = [comment[j1:j2] for (j1, j2) in slices(comment, comlen, ncard)]
+    kwds     = vcat([[p.first == :append ? :append => true : p for p in kw]
+                     for kw in fill(kwd, ncard-1)], [kwd])
+
+    zip(types, keys, values, comments, kwds)
+end
+
+function slices(value::S, slen::I, ncard::I, single::B=false) where
+    {S<:AbstractString, I<:Integer, B<:Bool}
+    vals = Array{Tuple{Integer, Integer}}(undef, ncard)
+    j1, j2, vlen = 1, slen, length(value)
+    for j=1:ncard
+        val = value[j1:min(j2, vlen)]
+        #  Adjust length of string for single quotes
+        j2  = min(j2 - (single ? count("'", val) : 0), vlen)
+        vals[j] = (j1, min(j2, vlen))
+        j1, j2 = min(j2 + 1, vlen + 1), j2 + slen
+    end
+    vals
+end
+
+function stringvalue(value::S; kwd...) where S<:AbstractString
+    #  Format Value and Continue card value.
+    #
+    #  Replace strings with single quotes with two single quotes.
+    value = replace(value, "'" => "''")
+    #  For fixed format string, shorten length of string by 1 to appended ampersand.
+    value = kwd[:fixed] ? rpad(value, kwd[:append] ? 7 : 8) : value
+    #  Append ampersand to value field, if necessary
+    value = "'" * value * (kwd[:append] ? "&'" : "'")
+    #  Pad value field, if necessary
+    rpad(value, max(0, kwd[:slashpos] - 1 - kwd[:slashlpad] - (KEYLENGTH+2)))
+end
+
+"""
+    rpad_image(card::AbstractString)
+
+Right pad input string with spaces to a multiple of 80 characters. Append apersand, if necessary
+"""
+function rpad_image(card::AbstractString)
+    #  Format card to 80 characters by either padding or truncating length.
+    length(card) < CARDLENGTH ? rpad(card, CARDLENGTH) : card[1:CARDLENGTH]
+end
+
+function rpad_image(key::S, value::S, comment::S; kwd...) where
+    S<:AbstractString
+    #  Format Value and Continue cards. Ensure value and comment are properly padded.
+    rpad_image(rpad_key(key) * (key == "CONTINUE" ? "  " : "= ") *
+               rpad(value, value_length(kwd)) *
+               (!isempty(comment) ? (repeat(" ", kwd[:slashlpad]) * "/" *
+                                     repeat(" ", kwd[:slashrpad]) * comment) : ""))
+end
+
+function format_image(::Type{End}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:ValueType}
+    #  Format End card using only keyword.
+    rpad_image(key)
+end
+
+function format_image(::Type{Comment}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Union{AbstractString, Missing}}
+    #  Format Comment card using only keyword and value.
+    rpad_image(rpad_key(key) * (is_missing(value) ? "" : value))
+end
+
+function format_image(::Type{Comment}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Number}
+    #  Ensure Comment card value is only a string.
+    error("Value is not a string.")
+end
+
+function format_image(::Type{Continue}, key::S, value::S, comment::S; kwd...) where
+    S<:AbstractString
+    #  Format Continue card value by adding ampersand to end of string.
+    value = stringvalue(value; kwd...)
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Continue}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Union{Missing, Number}}
+    error("Continue contains non-string value.")
+end
+
+function format_image(::Type{Hierarch}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:ValueType}
+    #  Add HIERARCH key, if not set. Then format value and comment fields
+    rpad_image((key[1:8] != "HIERARCH" ? "HIERARCH " : "") *
+               rpad(replace(key, kwd[:valuesep]) * " = " * string(value),
+                    max(0, kwd[:slashpos] - KEYLENGTH - 3)) *
+               (!isempty(comment) ? " / " * comment : ""))
+end
+
+function format_image(::Type{History}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Union{AbstractString, Missing}}
+    #  Format History card using only keyword and value.
+    rpad_image(rpad_key(key) * (is_missing(value) ? "" : value))
+end
+
+function format_image(::Type{History}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Number}
+    #  Ensure History card value is only a string.
+    error("Value is not a string.")
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Missing}
+    #  Format Value card for missing value.
+    rpad_image(key,    "", comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:AbstractString}
+    #  Format Value card for string value.
+    value = stringvalue(value; kwd...)
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Bool}
+    #  Format Value card for boolean value.
+    padlen = FIXEDINDEX - (KEYLENGTH+2) - 1
+    #  If fixed format, pad value string
+    value = (kwd[:fixed] ? repeat(" ", padlen) : "") * (value == true ? "T" : "F")
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Integer}
+    #  Format Value card for integer value.
+    padlen = max(0, FIXEDINDEX - (KEYLENGTH+2) - length(string(value)))
+    #  If fixed format, pad value string.
+    value  = (kwd[:fixed] ? repeat(" ", padlen) : "") * string(value)
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Float32}
+    #  Format Value card for 32-bit float value.
+    #  Replace (lowercase) 'e' and 'f' with (uppercase) 'E'
+    value  = replace(string(value), "f" => "E", "e" => "E")
+    padlen = max(0, FIXEDINDEX - (KEYLENGTH+2) - length(value))
+    #  If fixed format, pad value string.
+    value  = (kwd[:fixed] ? repeat(" ", padlen) : "") * value
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:AbstractFloat}
+    #  Format Value card for non-32-bit float values.
+    #  Replace (lowercase) 'e' with (uppercase) 'D'.
+    value  = replace(string(value), "e" => "D")
+    #  Truncate mantissa, so value contains 20 characters.
+    if kwd[:fixed] && length(value) > 20
+        n = findfirst("D", value)[1]
+        value = value[1:n-2] * value[n:end]
+    end
+    padlen = max(0, FIXEDINDEX - (KEYLENGTH+2) - length(value))
+    #  If fixed format, pad value string.
+    value  = (kwd[:fixed] ? repeat(" ", padlen) : "") * value
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Complex{Integer}}
+    #  Format Value card for complex integer value.
+    value  = "(" * string(real(value)) * ", " * string(imag(value)) * ")"
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Complex{Float32}}
+    #  Format Value card for complex 32-bit float value.
+    #  Replace (lowercase) 'e' and 'f' with (uppercase) 'E'.
+    real_  = replace(string(real(value)), "f" => "E", "e" => "E")
+    imag_  = replace(string(imag(value)), "f" => "E", "e" => "E")
+    #  Add paretheses.
+    value  = "(" * real_ * ", " * imag_ * ")"
+    rpad_image(key, value, comment; kwd...)
+end
+
+function format_image(::Type{Value}, key::S, value::V, comment::S; kwd...) where
+    {S<:AbstractString, V<:Complex}
+    #  Format Value card for all other complex float values.
+    #  Replace (lowercase) 'e' with (uppercase) 'D'.
+    real_  = replace(string(real(value)), "e" => "D")
+    imag_  = replace(string(imag(value)), "e" => "D")
+    #  Add paretheses
+    value  = "(" * real_ * ", " * imag_ * ")"
+    rpad_image(key, value, comment; kwd...)
+end
+
+"""
+    parse(image::AbstractString)
+
+Parse card image from string buffer.
+"""
+function parse(::Type{Card}, image::AbstractString)
+
+    #  Remove trailing spaces from key.
+    
+    key = rstrip(image[1:min(length(image), KEYLENGTH)])
+
+    #  !!! Currently, checks are for 'strict' standard
+    
+    #  Check for invalid characters in key.
+    
+    if occursin(NON_KEY_TEXT, key)
+        return Card(Invalid, "", missing, "", image)
+    end
+
+    #  Parse Card image for value and comment and construct Card. Card is a parametric
+    #  type containing Comment, Continue, End, Hierarch, History, and Value types.
+    #
+    #  The Hierarch and Value types are parametric types of Missing, Number, and
+    #  String types.
+    
+    if is_end_key(key)
+        type, args = End, (key, missing, "")
+    elseif is_comment_key(key)
+        type, args = COMMENTKEY[key], (key, image[9:end], "")
+    elseif is_hierarch_key(key)
+        key, value, comment = parse_image(Hierarch, image[9:end])
+        type, args = Hierarch{typeof(value)}, (key, value, comment)
+    elseif is_continue_image(image)
+        type, args = Continue, (key, parse_image(Value, image[11:end])...)
+    elseif is_value_image(image)
+        value, comment = parse_image(Value, image[11:end])
+        type, args = Value{typeof(value)}, (key, value, comment)
+    else
+        type, args = Invalid, (key, missing, "")
+    end
+    Card(type, args..., rpad_image(image))
+end
+
+function is_continue_image(image::AbstractString)
+    key = uppercase(rstrip(image[1:min(length(image), KEYLENGTH)]))
+    key == "CONTINUE" && occursin(KEY_FSC, key) && image[9:10] == "  "  &&
+        occursin(VALUE_FSC, image[11:end]) && !isnothing(match(VALUE_FSC, image[11:end])[:strg])
+end
+
+function is_value_image(image::AbstractString)
+    key = uppercase(rstrip(image[1:min(length(image), KEYLENGTH)]))
+    image[9:10] == "= " && !isnothing(match(KEY_FSC, key)) &&
+        !isnothing(match(VALUE_FSC, image[11:end]))
+end
+
+function parse_number(real::AbstractString)
+    if occursin("D", real) || (occursin("E", real) && findfirst("E", real)[1] >= 14)
+        value = Base.parse(Float64, replace(real, "E" => "e", "D" => "e"))
+    elseif occursin("E", real)
+        value = Base.parse(Float32, replace(real, "E" => "e"))
+    elseif occursin(".", real)
+        value = Base.parse(Float64, real)
+    else
+        value = try
+            Base.parse(Int64, real)
+        catch _
+            Base.parse(BigInt, real)
+        end
+    end
+    value
+end
+
+function parse_complex(real::S, imag::S) where S<:AbstractString
+    if occursin("D", real) || occursin("D", imag)
+        real_, imag_ = replace(real, "D" => "e"), replace(imag, "D" => "e")
+        value = Base.parse(ComplexF64, "$(real_) + $(imag_)im")
+    elseif occursin("E", real) || occursin("E", imag)
+        real_, imag_ = replace(real, "E" => "f"), replace(imag, "E" => "f")
+        value = Base.parse(ComplexF32, "$(real) + $(imag)im")
+    elseif occursin(".", real) || occursin(".", imag)
+        value = Base.parse(ComplexF64, "$(real) + $(imag)im")
+    else
+        value = try
+            Base.parse(Complex{Int64}, "$(real) + $(imag)im")
+        catch _
+            Base.parse(Complex{BigInt}, "$(real) + $(imag)im")
+        end
+    end
+    value
+end
+
+function parse_image(::Type{Hierarch}, image::AbstractString)
+    valucomm = match(HIERARCH_FSC, image)
+    if !isnothing(valucomm[:valu_field])
+        if !isnothing(valucomm[:strg])
+            value = valucomm[:strg]
+        else
+            value = missing
+        end
+    else
+        value = missing
+    end
+    comment = isnothing(valucomm[:comm]) ? "" : valucomm[:comm]
+    value, comment
+end
+
+function parse_image(::Type{Value}, image::AbstractString)
+    valucomm = match(VALUE_FSC, image)
+    if !isnothing(valucomm[:valu_field])
+        if !isnothing(valucomm[:strg])
+            value = string(valucomm[:strg])
+        elseif !isnothing(valucomm[:bool])
+            value = valucomm[:bool] == "T" ? true : false
+        elseif !isnothing(valucomm[:numr])
+            value = parse_number(valucomm[:numr])
+        elseif !isnothing(valucomm[:cplx])
+            value = parse_complex(valucomm[:real], valucomm[:imag])
+        else
+            value = missing
+        end
+    else
+        value = missing
+    end
+    comment = isnothing(valucomm[:comm]) ? "" : valucomm[:comm]
+    value, comment
+end
+
+
+#=
+    valuestring::AbstractString
+    image::Union{AbstractString, Nothing}
+    specifier::Any
+    rawkeyword::AbstractString
+    rawvalue::AbstractString
+    
+    verified::Bool
+    hierarch::Bool
+    invalid::Bool
+    modified::Bool
+    valuemodified::Bool
+    function Card(keyword, value, comment, image)
+        if !isempty(keyword) && !isempty(value) && is_record_key(keyword, value)
+            keyword, value = get_record_key(keyword, value)
+        end
+        new(keyword, value, comment, valuestring, image, specifier, rawkeyword, rawvalue,
+            verified, hierarch, invalid, modified, valuemodified)
+    end
+end
+
+"""
+    specifier(card::Card)
+
+The field specifier of a record-valued key card (normal cards are unspecified).
+"""
+function specifier(card::Card)
+    #  ensure the key exists and is parsed. this will set the internal field.
+    !isnothing(card.key) ? card.specifier : nothing
+end
+
+function specifier(card::Card, specifier)
+    if isnothing(specifier)
+        throw(Exception("The field specifier may not be blank for record-valued key cards."))
+    elseif isnothing(card.specifier)
+        throw(Exception("The field specifier cannot be forced for record-valued key cards."))
+    elseif specifier != card.specifier
+        card.specifier = specifier
+        #  the key also needs updating.
+        card.key = join([split(card.key, ".")[1], specifier], ".")
+        card.modified = true
+    end
+end
+=#
