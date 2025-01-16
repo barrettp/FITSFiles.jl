@@ -1,0 +1,18 @@
+name = "FITS"
+uuid = "358a0a88-3548-4ad6-b652-8bdbf64af8e5"
+authors = ["Paul Barrett <pebarrett@gmail.com> and contributors"]
+version = "1.0.0-DEV"
+
+[deps]
+CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
+
+[compat]
+julia = "1.8"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
