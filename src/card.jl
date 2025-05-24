@@ -6,15 +6,15 @@
 #   add splitting of long strings at spaces
 
 const CARDLENGTH::Int = 80
-const BLANKCARD::String = repeat(" ", CARDLENGTH)
+# const BLANKCARD::String = repeat(" ", CARDLENGTH)
 const KEYLENGTH::Int = 8
-const BLANKKEY::String = repeat(" ", KEYLENGTH)
+# const BLANKKEY::String = repeat(" ", KEYLENGTH)
 const TOKENLEN::Int = 10
 const FIXEDINDEX::Int = 20  # from end of value token
 const HIERINDEX::Int = 0
 
 const EQUAL_TOKEN::String = "= "
-const HIERARCH_EQUAL_TOKEN::String = "="
+# const HIERARCH_EQUAL_TOKEN::String = "="
 
 const KEYWD_CHARS = "[A-Z0-9_-]"
 const ASCII_CHARS = "[ -~]"
@@ -33,7 +33,7 @@ const END_IMAGE   = "END"*repeat(' ', 77)
 const KEY_FSC = Regex("^[A-Z0-9_-]{0," * string(KEYLENGTH) * "}\$")
 const NON_KEY_TEXT = Regex("[^A-Z0-9_-]")
 #  regex for any printable ASCII character excluding '='.
-const KEY_HIERARCH = Regex("^(?:HIERARCH +)?(?:^[ -<>-~]+ ?)+\$", "i")
+# const KEY_HIERARCH = Regex("^(?:HIERARCH +)?(?:^[ -<>-~]+ ?)+\$", "i")
 
 #  regex for FSC real number substring.
 const DIGITS_FSC_STR  = "(\\.\\d+|\\d+(\\.\\d*)?)([DE][+-]?\\d+)?"
@@ -47,7 +47,7 @@ const NUMBER_NFSC_STR = "[+-]?" * DIGITS_NFSC_STR
 
 #  regex helps delete leading zeros from numbers to avoid evaluating
 #  them as octol values.
-const NUMBER_FSC  = Regex("(?P<sign>[+-])?0*?(?P<digt>" * DIGITS_FSC_STR * ")")
+# const NUMBER_FSC  = Regex("(?P<sign>[+-])?0*?(?P<digt>" * DIGITS_FSC_STR * ")")
 const NUMBER_FSC_STR_2  = "[+-]?" * DIGITS_FSC_STR_2
 const NUMBER_NFSC = Regex("(?P<sign>[+-])? *0*?(?P<digt>" * DIGITS_NFSC_STR * ")")
 const NUMBER_FORMAT     = "(?<i>\\d+)?(?:(?<p>\\.)(?<f>\\d+)?)?(?:(?<x>[DE])(?<n>[+-]?\\d+))?"
@@ -81,13 +81,14 @@ const NON_ASCII_TEXT = Regex("[^ -~]")
 #  Note that a non-greedy match is done for a string, since a greedy
 #  match will find a single-quote after the comment separator
 #  resulting in an incorrect match.
+#=
 const VALUE_FSC  = Regex(
     "(?P<valu_field> *" *
     "(?P<valu>" * STRING_FIELD_STR * "|(?P<bool>[FT])|" *
     "(?P<numr>" * NUMBER_FSC_STR * ")|(?P<cplx>\\( *" *
     "(?P<real>" * NUMBER_FSC_STR * ") *, *(?P<imag>" * NUMBER_FSC_STR * ") *\\)))? *)" *
     "(?P<comm_field>(?P<sepr>/ *)(?P<comm>[!-~][ -~]*)?)?\$")
-
+=#
 const VALUE_FSC_2  = Regex(
     "^ *" *
     "(?:" *
@@ -163,7 +164,15 @@ struct History     <: CommentCardType end
 
 const COMMENTKEY = Dict(""=>Comment, "COMMENT"=>Comment, "HIERARCH"=>Hierarch, "HISTORY"=>History)
 
+"""
+    CardFormat(fixd, vbeg, vend, ampr, slsh, cbeg, cend)
+
+Create a card format descriptor.
+"""
 mutable struct CardFormat
+    #  The CardFormat descriptor provides a compact method to format a card by
+    #  storing the begin and end index of the value, separator, and comment as
+    #  an 8-bit integer.
     fixd::Bool
     vbeg::Union{Int8, Tuple{Int8, Int8}}
     vend::Union{Int8, Tuple{Int8, Int8}}
@@ -180,7 +189,10 @@ mutable struct CardFormat
 end
 
 """
-A card is parametric type of Comment, Continue, End, Hierarch, History, and Value.
+    Card(type, key, value, comment, format)
+
+Create a card type, where type is Comment, Continue, End, Hierarch, History,
+Invalid, or Value{T}.
 """
 struct Card{T<:AbstractCardType}
     key::AbstractString
@@ -193,22 +205,25 @@ struct Card{T<:AbstractCardType}
 end
 
 """
-Card(key, value, comment; keywords...)
+    Card([key, [value, [comment]]]; <keywords>)
+    Card("HIERARCH", key, [key, [value, [comment]]]; <keywords>)
 
-Parameters:
+Create a standard or Hierarch card type
 
-    key   : key word (default: "")
-    value : value of key word (default: missing)
-    comment: comment string (default: "")
+# Argments
 
-Optional:
+- `key::AbstractString=""`: keyword string
+- `value::U=missing`: keyword value, where U is Bool, Number, or String
+- `comment::AbstractString=""`: comment string
 
-    append: append CONTINUE cards for long (>68 characters) strings (default: false)
-    fixed : use fixed format key (default: true)
-    slash : position of (slash) comment separator (default: 32)
-    lpad  : number of spaces before (slash) comment separator (default: 1)
-    rpad  : number of spaces after (slash) comment separator (default: 1)
-    truncate: truncate comment beyond 80 charaters (default: true)
+# Keywords
+
+- `append::Bool=false`: append CONTINUE cards for long strings (>68 characters)
+- `fixed::Bool=true`: use fixed format
+- `slash::Integer=32`: index of comment separator (/)
+- `lpad::Integer=1`: number of spaces before comment separator
+- `rpad::Integer=1`: number of spaces after comment separator
+- `truncate::Bool=true`: truncate comment at end of card
 """
 function Card(key::S = "", value::V = missing, comment::S = ""; append::B=false,
     fixed::B=true, slash::I=32, lpad::I=1, rpad::I=1, truncate::B=true) where
@@ -275,25 +290,6 @@ function Card(key::S = "", value::V = missing, comment::S = ""; append::B=false,
     typeof(cards) <: AbstractArray ? cards : Card(type, upkey, value, comment, format)
 end
 
-"""
-Card("HIERARCH", key, value, comment; keywords...)
-
-Parameters:
-
-    HIERARCH: key word
-    tokens  : key word (default: "")
-    value   : value of key word (default: missing)
-    comment : comment string (default: "")
-
-Optional:
-
-    append: append CONTINUE cards for long (>68 characters) strings (default: false)
-    fixed : use fixed format key (default: true)
-    slash : position of (slash) comment separator (default: 32)
-    lpad  : number of spaces before (slash) comment separator (default: 1)
-    rpad  : number of spaces after (slash) comment separator (default: 1)
-    truncate: truncate comment beyond 80 charaters (default: false)
-"""
 function Card(key::S, tokens::S, value::V, comment::S;
     fixed::B=true, slash::I=32, lpad::I=1, rpad::I=1) where
     {B<:Bool, I<:Integer, S<:AbstractString, V<:ValueType}
@@ -329,6 +325,15 @@ function Card(key::S, tokens::S, value::V, comment::S;
     Card(type, uptoken, value, comment, format)
 end
 
+#  modify card value
+function setvalue!(card::Card, value::ValueType)
+    type, f = typename(card), card.format
+    lpad, rpad = f.slsh - f.vend, f.cbeg - f.slsh
+    Card(type, card.key, value, card.comment,
+        formatcard(type, value, card.comment;
+        fixed=f.fixd, slash=f.slsh, lpad=lpad, rpad=rpad))
+end
+
 #  check key type
 is_end_key(key::AbstractString)      = key == "END"
 is_continue_key(key::AbstractString) = key == "CONTINUE"
@@ -336,7 +341,10 @@ is_comment_key(key::AbstractString)  = haskey(COMMENTKEY, key)
 ### is_hierarch_key(key::AbstractString) = key == "HIERARCH"
 is_valid_key(key::AbstractString)    = length(key) <= KEYLENGTH && occursin(KEY_FSC, key)
 is_missing(value::ValueType) = value === missing
-is_string(value::ValueType) = typeof(value) <: AbstractString ? true : error("Value is not a string.")
+
+function is_string(value::ValueType)
+    typeof(value) <: AbstractString ? true : error("Value is not a string.")
+end
 
 function is_fixed_key(key::AbstractString)
     key in ["BITPIX", "END", "NAXIS", "SIMPLE"] || !isnothing(match(r"NAXIS\d{1,3}", key))
@@ -351,14 +359,24 @@ function is_long_string(value::S, comment::S, slash, lpad, rpad, truncate) where
 end
 
 function is_hierarch(key::AbstractString)
-    key[1:min(length(key),8)] == "HIERARCH" || (length(key) > KEYLENGTH && occursin(ASCII_TEXT, key))
+    key[1:min(length(key),8)] == "HIERARCH" ||
+    (length(key) > KEYLENGTH && occursin(ASCII_TEXT, key))
 end
 
-basename(T) = Base.typename(T).wrapper
 typename(::Card{T}) where T = T
 
+function verify(card::Card, value::ValueType)
+    if card.value != value
+        f = card.format
+        vbeg = f.vend-(typeof(value) <: Bool ? 1 : length(string(value)))+1
+        fmt = CardFormat(f.fixd, vbeg, f.vend, f.ampr, f.slsh, f.cbeg, f.cend)
+        card = Card(typename(card), card.key, value, card.comment, fmt)
+    end
+    card
+end
+
 """
-    split_card(key::S, value::S, comment::S, format) where S<:AbstractString
+    split_card(key, value, comment, format)
 
 Split card having long value and comment fields into multiple cards
 
@@ -389,7 +407,7 @@ function split_card(key::K, value::S, comment::C, kwds) where
 end
 
 """
-    join_cards(cards::AbstractArray{Card})
+    join_cards(cards)
 
 Join CONTINUE cards to initial long string card to create a long value and comment card
 """
@@ -520,8 +538,13 @@ end
 
 ####  Format Card Image  ####
 
-function Base.show(card::Card)
-    format_card(basename(typename(card)), card.key, card.value, card.comment, card.format)
+function Base.show(io::IO, cards::Vector{Card{<:Any}})
+    print(io, join([repr(card) for card in cards], "\n"))
+end
+
+function Base.show(io::IO, card::Card)
+    print(io, format_card(basetype(typename(card)), card.key, card.value,
+        card.comment, card.format))
 end
 
 #  Format End card using only keyword.
@@ -573,6 +596,12 @@ end
 function format_card(::Type{History}, key::K, value::N, comment::C, format::F) where
     {K<:AbstractString, N<:Number, C<:AbstractString, F<:CardFormat}
     error("Value is not a string.")
+end
+
+#  Format Invalid card
+function format_card(::Type{Invalid}, key::K, value::V, comment:: C, format::F) where
+    {K<:AbstractString, V<:AbstractString, C<:AbstractString, F<:CardFormat}
+    rpad_key(key)*value
 end
 
 #  Format Value card for missing value.
@@ -699,9 +728,9 @@ end
 #  orphaned CONTINUE cards become COMMENT cards.
 
 """
-    parse(Card, image::AbstractString)
+    parse(Card, image)
 
-Parse card image from string buffer.
+Parse 80 character card image from string buffer.
 """
 function parse(::Type{Card}, image::AbstractString)
     #
@@ -713,32 +742,32 @@ function parse(::Type{Card}, image::AbstractString)
     #  Value types. The Hierarch and Value types are parametric types of Missing, Number, and
     #  String types.
     #
+    card = Card()
     if length(image) == CARDLENGTH
         if image == END_IMAGE
-            args = (End,      "END", missing, "", CardFormat())
+            card = Card(End,      "END", missing, "", CardFormat())
         elseif (m = match(Regex("^"*VALUE_CARD*"\$"), image[1:TOKENLEN])) !== nothing
             value, comment, format = parse_value_comment(Value, image[TOKENLEN+1:end])
-            args = (Value{typeof(value)}, m[:key], value, comment, format)
+            card = Card(Value{typeof(value)}, m[:key], value, comment, format)
         elseif (m = match(Regex("^"*COMMENT_CARD*"\$"), image[1:TOKENLEN])) !== nothing
             comment = image[KEYLENGTH+1:end]
             if m[:key] == "HIERARCH"
                 key, value, comment, format = parse_value_comment(Hierarch, image[TOKENLEN:end])
-                args = (Hierarch{typeof(value)}, key, value, comment, format)
+                card = Card(Hierarch{typeof(value)}, key, value, comment, format)
             else
-                args = (m[:key] == "HISTORY " ? History : Comment, rstrip(m[:key]),
+                card = Card(m[:key] == "HISTORY " ? History : Comment, rstrip(m[:key]),
                             rstrip(comment), "", CardFormat(true, 1, length(comment)))
             end
         elseif (m = match(Regex("^"*CONTINUE_CARD*"\$"), image[1:TOKENLEN])) !== nothing
             value, comment, format = parse_value_comment(Value, image[TOKENLEN+1:end])
-            args = (Continue, m[:key], value, comment, format)
+            card = Card(Continue, m[:key], value, comment, format)
         else
-            args = (Invalid, rstrip(image[1:8]), image[KEYLENGTH+1:end], "", CardFormat())
+            card = Card(Invalid, rstrip(image[1:8]), image[KEYLENGTH+1:end], "", CardFormat())
         end
     else
-        args = (Invalid, rstrip(image[1:8]), image[KEYLENGTH+1:end], "", CardFormat())
+        card = Card(Invalid, rstrip(image[1:8]), image[KEYLENGTH+1:end], "", CardFormat())
     end
-
-    Card(args...)
+    card
 end
 
 #  implement joincards() function. This functionality may need to be moved to hdu.jl
@@ -754,7 +783,7 @@ end
 function value_type(valus)
     types  = (strg=String, bool=Bool, numr=Real, cplx=Complex, miss=Missing)
     keys   = (:strg, :bool, :numr, :cplx, :miss)
-    basename([types[k] for k in keys if valus[k] !== nothing][1])
+    basetype([types[k] for k in keys if valus[k] !== nothing][1])
 end
 
 function parse_value_comment(::Type{Value}, image::AbstractString)
@@ -762,20 +791,21 @@ function parse_value_comment(::Type{Value}, image::AbstractString)
     offsets = named_offsets(valus)
     value, format = parse_value(value_type(valus), valus, offsets)
     comment, format = parse_comment!(format, valus, offsets)
-    (value, comment, format)
+    (value, String(comment), format)
 end
 
-function parse_value(::Type{String}, valus, offsets)
+function parse_value(::Type{String}, valus, offsets)::Tuple{String, CardFormat}
     format = CardFormat()
     value = string(valus[:strg])
+    #  vbeg and vend include the the single quotes.
     vbeg, vend, ampr = offsets[:strg], offsets[:strg]+length(value)-1, offsets[:ampr]
     format.fixd = vbeg == 1 ? true : false
     format.vbeg, format.vend, format.ampr = Int8(vbeg), Int8(vend), Int8(ampr)
-    value = replace(value[2:(ampr > 0 ? ampr : vend)-1], "''" => "'")
+    value = replace(value[2:(ampr > 0 ? ampr : vend)-vbeg], "''" => "'")
     (value, format)
 end
 
-function parse_value(::Type{Bool}, valus, offsets)
+function parse_value(::Type{Bool}, valus, offsets)::Tuple{Bool, CardFormat}
     format = CardFormat()
     value = valus[:bool] == "T" ? true : false
     format.fixd = offsets[:bool] == FIXEDINDEX ? true : false
@@ -783,7 +813,7 @@ function parse_value(::Type{Bool}, valus, offsets)
     (value, format)
 end
 
-function parse_value(::Type{Real}, valus, offsets)
+function parse_value(::Type{Real}, valus, offsets)::Tuple{Real, CardFormat}
     format = CardFormat()
     value = parse_number(valus[:numr])
     numr, nlen  = offsets[:numr], length(valus[:numr])
@@ -793,7 +823,7 @@ function parse_value(::Type{Real}, valus, offsets)
     (value, format)
 end
 
-function parse_value(::Type{Complex}, valus, offsets)
+function parse_value(::Type{Complex}, valus, offsets)::Tuple{Complex, CardFormat}
     format = CardFormat()
     value  = parse_complex(valus[:real], valus[:imag])
     real_, imag_ = offsets[:real], offsets[:imag]
@@ -804,7 +834,7 @@ function parse_value(::Type{Complex}, valus, offsets)
     (value, format)
 end
 
-function parse_value(::Type{Missing}, valus, offsets)
+function parse_value(::Type{Missing}, valus, offsets)::Tuple{Missing, CardFormat}
     format = CardFormat()
     (missing, format)
 end
@@ -837,6 +867,7 @@ function parse_value_comment(::Type{Hierarch}, image::AbstractString)
     end
 
     comment, format = parse_comment!(format, values, offsets)
+    # println("$comment, $format")
     (key, value, comment, format)
 end
 
@@ -866,15 +897,14 @@ function parse_comment!(format::F, values::R, offsets::N) where
 end
 
 function parse_number(real::AbstractString)
-    n = findlast('E', real)
-        if occursin("D", real) || (occursin("E", real) &&
-        #  test for overflow or precision
-            (abs(Base.parse(Int, real[n+1:end])) >= 39 || n >= 14))
+    if occursin('D', real) || (occursin('E', real) && overflow(real))
         value = Base.parse(Float64, replace(real, "E" => "e", "D" => "e"))
     elseif occursin("E", real)
         value = Base.parse(Float32, replace(real, "E" => "e"))
-    elseif occursin(".", real)
+    elseif occursin(r"\.0*[1-9]+", real) && length(split(real, ".")[2]) >= 10
         value = Base.parse(Float64, real)
+    elseif occursin(".", real)
+        value = Base.parse(Float32, real)
     else
         value = try
             Base.parse(Int64, real)
@@ -883,6 +913,12 @@ function parse_number(real::AbstractString)
         end
     end
     value
+end
+
+function overflow(real)
+    #  test for overflow or precision
+    n = findlast('E', real)
+    abs(Base.parse(Int, real[n+1:end])) >= 39 || n >= 14
 end
 
 function parse_complex(real::S, imag::S) where S<:AbstractString

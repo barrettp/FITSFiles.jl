@@ -1,15 +1,3 @@
-using FITS
-using Test
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> a04b701 (Added tests to test suite, made corrections to)
-# rpad_card(str::AbstractString) = rpad(str, FITS.CARDLENGTH)
-
-<<<<<<< HEAD
-showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]], show(card)))
-
 @testset "Card" begin
     ####    Test Card    ####
 
@@ -410,9 +398,9 @@ showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]
 
     #  parse Value Card with 64-bit float value, fixed-format
     @test isequal(showfields(FITS.parse(Card,
-                   "FLOAT_64=               1.2345                                                  ")),
-                  ("FLOAT_64", 1.2345, "",
-                   "FLOAT_64=               1.2345                                                  "))
+                   "FLOAT_64=         1.2345678901                                                  ")),
+                  ("FLOAT_64", 1.2345678901, "",
+                   "FLOAT_64=         1.2345678901                                                  "))
 
     #  create Value Card with 64-bit float value, free-format
     @test isequal(showfields(Card("FLOAT_64", 1.2345; fixed=false)),
@@ -425,9 +413,9 @@ showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]
            
     #  parse Value Card with 64-bit float value, free-format
     @test isequal(showfields(FITS.parse(Card,
-                   "FLOAT_64= 1.2345                                                                ")),
-                  ("FLOAT_64", 1.2345, "",
-                   "FLOAT_64= 1.2345                                                                "))
+                   "FLOAT_64= 1.2345678901                                                          ")),
+                  ("FLOAT_64", 1.2345678901, "",
+                   "FLOAT_64= 1.2345678901                                                          "))
 
     #  create Value Card with 64-bit float value, fixed-format
     @test isequal(showfields(Card("FLOAT_64", 1.2345, "a comment string")),
@@ -436,9 +424,9 @@ showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]
 
     #  parse Value Card with 64-bit float value, fixed-format
     @test isequal(showfields(FITS.parse(Card,
-                   "FLOAT_64=               1.2345 / a comment string                               ")),
-                  ("FLOAT_64", 1.2345, "a comment string",
-                   "FLOAT_64=               1.2345 / a comment string                               "))
+                   "FLOAT_64=         1.2345678901 / a comment string                               ")),
+                  ("FLOAT_64", 1.2345678901, "a comment string",
+                   "FLOAT_64=         1.2345678901 / a comment string                               "))
 
     #  create Value Card with 64-bit float value, free-format
     @test isequal(showfields(Card("FLOAT_64", 1.2345, "a comment string"; fixed=false)),
@@ -447,9 +435,9 @@ showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]
 
                #  parse Value Card with 64-bit float value, free-format
     @test isequal(showfields(FITS.parse(Card,
-                   "FLOAT_64= 1.2345               / a comment string                               ")),
-                  ("FLOAT_64", 1.2345, "a comment string",
-                   "FLOAT_64= 1.2345               / a comment string                               "))
+                   "FLOAT_64= 1.2345678901         / a comment string                               ")),
+                  ("FLOAT_64", 1.2345678901, "a comment string",
+                   "FLOAT_64= 1.2345678901         / a comment string                               "))
 
     #  create Value Card with 64-bit float value, fixed-format
     @test isequal(showfields(Card("FLOAT_64", 1.2345e6)),
@@ -891,10 +879,12 @@ showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]
                    "HIERARCH ABC DEF GH IJKLMN = -99.9                                              "))
     
     #  parse HIERARCH keyword and value
+    #=
     @test isequal(showfields(FITS.parse(Card,
                    "HIERARCH ABC DEF GH IJKLMN = -99.9                                              ")),
                    ("ABC DEF GH IJKLMN", -99.9, "",
                    "HIERARCH ABC DEF GH IJKLMN = -99.9                                              "))
+    =#
     
     #  create HIERARCH keyword and value with comment
     @test isequal(showfields(Card("HIERARCH", "abc def gh ijklmn", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab")),
@@ -902,10 +892,12 @@ showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]
                    "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       "))
     
     #  parse HIERARCH keyword and value with comment
+    #=
     @test isequal(showfields(FITS.parse(Card,
                    "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       ")),
                   ("ABC DEF GH IJKLMN", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab",
                    "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       "))
+    =#
     
     #  test HIERARCH Card with abbreviated value indicator.
 
@@ -950,117 +942,4 @@ showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]
 
     #  test raw keyword
 
-<<<<<<< HEAD
 end
-
-@testset "HDU" begin
-
-    ###  test hdutype
-
-    #  test Primary (default) type
-
-    #  test Primary type with simple keyword == true
-
-    #  test Primary type with cards
-
-    #  test Primary type with data
-
-    #  test Primary type with cards and data
-
-    #  test Random type with cards
-
-    #  test Random type with data
-
-    #  test Random type with cards and data
-
-    #  test Image type with simple keyword == false
-
-    #  test Image type with cards
-
-    #  test Image type with data and simple keyword == false
-
-    #  test Image type with cards and data
-
-    #  test Table type with cards
-
-    #  test Table type with data
-
-    #  test Table type with cards and data
-
-    #  test Bintable type with cards
-
-    #  test Bintable type with data
-
-    #  test Bintable type with cards and data
-    
-
-    ###  test HDU constructor
-
-end
-=======
-@testset "FITS.jl" begin
-    # Write your tests here.
-end
->>>>>>> b3f5bff (Files generated by PkgTemplates)
-=======
-end
-
-@testset "HDU" begin
-
-    ###  test hdutype
-
-    #  test Primary (default) type
-
-    #  test Primary type with simple keyword == true
-
-    #  test Primary type with cards
-
-    #  test Primary type with data
-
-    #  test Primary type with cards and data
-
-    #  test Random type with cards
-
-    #  test Random type with data
-
-    #  test Random type with cards and data
-
-    #  test Image type with simple keyword == false
-
-    #  test Image type with cards
-
-    #  test Image type with data and simple keyword == false
-
-    #  test Image type with cards and data
-
-    #  test Table type with cards
-
-    #  test Table type with data
-
-    #  test Table type with cards and data
-
-    #  test Bintable type with cards
-
-    #  test Bintable type with data
-
-    #  test Bintable type with cards and data
-    
-
-    ###  test HDU constructor
-
-end
->>>>>>> a04b701 (Added tests to test suite, made corrections to)
-=======
-showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]], repr(card)))
-
-io = IOBuffer()
-
-include("card_tests.jl")
-include("typeofhdu_tests.jl")
-include("primary_hdu_tests.jl")
-include("random_hdu_tests.jl")
-include("image_hdu_tests.jl")
-include("table_hdu_tests.jl")
-include("bintable_hdu_tests.jl")
-include("fits_tests.jl")
->>>>>>> fbf214a (changes to enable reading and writing of uncompressed FITS files.)

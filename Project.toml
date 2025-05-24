@@ -1,7 +1,7 @@
 name = "FITS"
 uuid = "358a0a88-3548-4ad6-b652-8bdbf64af8e5"
 authors = ["Paul Barrett <pebarrett@gmail.com> and contributors"]
-version = "1.0.0-DEV"
+version = "0.2.0"
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -9,6 +9,7 @@ version = "1.0.0-DEV"
 >>>>>>> a04b701 (Added tests to test suite, made corrections to)
 [deps]
 CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
@@ -18,6 +19,7 @@ UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 =======
 >>>>>>> a04b701 (Added tests to test suite, made corrections to)
 [compat]
+Printf = "1.11.0"
 julia = "1.8"
 
 [extras]

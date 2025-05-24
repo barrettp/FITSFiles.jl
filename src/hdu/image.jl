@@ -1,80 +1,135 @@
 ####    Image HDU functions
 
-struct ImageFormat
-    type::Type
-    leng::Int64
-    shape::Tuple
-    name::String
-    zero::Union{Real, Nothing}
-    scal::Union{Real, Nothing}
-    null::Union{String, Nothing}
-    dmin::Union{Real, Nothing}
-    dmax::Union{Real, Nothing}
-end
+function read(io::IO, ::Type{Image}, format::DataFormat,
+    fields::ImageField; scale=true, kwds...)
 
-function create_header(::Type{Image}, cards::Vector{Card}, data::AbstractArray, kwds)
-    N = ndims(data)
-    #  create mandatory (required) header cards and remvove them from the deck if necessary
-    required = Vector{Card}(undef, 3+N) 
-    required[1] = popat!(cards, "XTENSION", Card("XTENSION", "IMAGE   "))
-    required[2] = popat!(cards, "BITPIX", Card("BITPIX", TYPE2BITS[eltype(data)]))
-    required[3] = popat!(cards, "NAXIS",  Card("NAXIS", N))
-    required[4:3+N] .= [popat!(cards, "NAXIS$j", Card("NAXIS$j", size(data)[j])) for j = 1:N]
-    #  append remaining cards in deck, but first remove the END card
-    popat!(cards, "END")
-    M = length(cards)
-    kards = Vector{Card}(undef, 4+N+M)
-    kards[1:3+N] .= required
-    kards[4+N:3+N+M] .= cards
-    kards[4+N+M] = Card("END")
-    return kards
-end
+    begpos = position(io)
+    #  Read data array
+    M, N = sizeof(format.type), format.leng
+    if N > 0
+        data = read(io, format, fields)
+        #  Seek to end of the last data block
+        seek(io, begpos + BLOCKLEN*div(M*N, BLOCKLEN, RoundUp))
 
-function create_data(::Type{Image}, cards::Vector{Card})
-    #  Create simple N-dimensional array of zeros of type BITPIX
-    zeros(TYPE2BITS(cards["BITPIX"]), [cards["NAXIS"*string(j)] for j=1:cards["NAXIS"]]...)
-end
-
-function read(io::IO, type::Type{Image}, cards::Vector{Card}; kwds...)
-    #  Calculate the length of the array in bytes
-    dtype, nbytes = datatype(cards), datalen(cards)
-    #  Calculate the number of 2880 byte blocks
-    nbloks = div(nbytes, BLOCKLEN, RoundUp)
-    if nbytes > 0
-        #  Convert truncated bytes to appropriate data type, endianness, and shape.
-        data = reshape(
-            ntoh.(reinterpret(dtype, Base.read(io, BLOCKLEN*nbloks)[1:nbytes])),
-            datashape(cards)...)
-
-        #  Check for non-default integer types
-        if dtype in BLANKTYPE && haskey(cards, "BLANK")
-            data[cards["BLANK"] .== data] .= missing
+        data = scale ? fields.zero .+ fields.scale.*data : data
+        #=
+        if get(kwds, :unit, true)
+            apply_unit(data, cards)
         end
-
-        bzero = get(cards, "BZERO", zero(dtype))
-        if bzero in keys(TEMPTYPE)
-            #  Convert data to intermediate data type, add integer BZERO value,
-            #  and convert to output type.
-            ttype, otype = TEMPTYPE[bzero], OUTTYPE[dtype]
-            data  = otype.(zero(ttype) .+ map(x -> !ismissing(x) ? ttype(x) : x, data))
-        else
-            #  Apply BZERO and BSCALE and convert to output type.
-            otype = OUTTYPE[dtype]
-            scale = otype(get(cards, "BSCALE", one(otype)))
-            data  = zero(otype) .+ scale.*map(x -> !ismissing(x) ? otype(x) : x, data)
-        end
+        =#
     else
-        data = OUTTYPE[dtype][]
+        data = nothing
     end
-    #  Append units
-    if haskey(cards, "BUNIT") data = data*uparse(cards["BUNIT"]) end
 
     ####    Get WCS keywords
     data
 end
 
-function write(io::IO, type::Type{Image}, cards::Vector{Card}; kwds...)
+function write(io::IO, ::Type{Image}, data::Nothing, format::DataFormat,
+    fields::ImageField; kwds...)
 end
 
-function verify!(type::Type{Image}, cards::Vector{Card})
+function write(io::IO, ::Type{Image}, data::AbstractArray,
+        format::DataFormat, fields::ImageField; kwds...)
+    
+    if format.leng > 0
+        #  data = remove_units(data)
+
+        write(io, data, fields; kwds...)
+        padblock(io, format)
+    end
+end
+
+function verify!(::Type{Image}, cards::Cards, format::DataFormat,
+    mankeys::D) where D<:Dict{AbstractString, ValueType}
+
+    if haskey(mankeys, "BITPIX") && format.type != BITS2TYPE[mankeys["BITPIX"]]
+        setindex!(cards, TYPE2BITS[format.type], "BITPIX")
+        println("Warning: BITPIX set to $(TYPE2BITS[format.type])).")
+    end
+    if haskey(mankeys, "NAXIS1") && format.shape != datasize(cards, 1)
+        N = length(format.shape)
+        setindex!(cards, N, "NAXIS")
+        for j=1:N setindex!(cards, format.shape[j], "NAXIS$j") end
+        println("Warning: NAXIS$(1:N) set to $(format.shape)")
+    end
+    cards
+end
+
+function DataFormat(::Type{Image}, data::Nothing, mankeys::Dict{S, V}) where
+    {S<:AbstractString, V<:ValueType}
+
+    #  Determine format from data
+    type  = BITS2TYPE[get(mankeys, "BITPIX", 32)]
+    leng  = datalength(mankeys, 1)
+    shape = datasize(mankeys, 1)
+    param = get(mankeys, "PCOUNT", 0)
+    group = get(mankeys, "GCOUNT", 1)
+    heap  = param > 0 ? get(mankeys, "THEAP", 0) : 0
+    DataFormat(type, leng, shape, param, group, heap)
+end
+
+function FieldFormat(::Type{Image}, format::DataFormat, reskeys::Dict{S, V},
+    data::Nothing) where {S<:AbstractString, V<:ValueType}
+
+    #  Get missing value
+    zero_ = get(reskeys, "BZERO", zero(format.type))
+    scale = get(reskeys, "BSCALE", one(format.type))
+    miss  = format.type in MISSTYPE ? get(reskeys, "BLANK", nothing) : nothing
+    dmin  = get(reskeys, "DATAMIN", nothing)
+    dmax  = get(reskeys, "DATAMAX", nothing)
+    ImageField(format.type, zero_, scale, miss, dmin, dmax)
+end
+
+function DataFormat(::Type{Image}, data::AbstractArray,
+    mankeys::Dict{S, V}) where {S<:AbstractString, V<:ValueType}
+
+    #  Determine format from data
+    type  = eltype(data)
+    leng  = length(data)
+    shape = size(data)
+    param = get(mankeys, "PCOUNT", 0)
+    group = get(mankeys, "GCOUNT", 1)
+    heap = 0
+    DataFormat(type, leng, shape, param, group, heap)
+end
+
+function FieldFormat(::Type{Image}, format::DataFormat, reskeys::Dict{S, V},
+    data::AbstractArray) where {S<:AbstractString, V<:ValueType}
+
+    #  Get missing value
+    zero_ = get(reskeys, "BZERO", zero(format.type))
+    scale = get(reskeys, "BSCALE", one(format.type))
+    miss  = format.type in MISSTYPE ? get(reskeys, "BLANK", nothing) : nothing
+    dmin  = get(reskeys, "DATAMIN", nothing)
+    dmax  = get(reskeys, "DATAMAX", nothing)
+    ImageField(format.type, zero_, scale, miss, dmin, dmax)
+end
+
+function create_cards!(::Type{Image}, format::DataFormat, fields::ImageField,
+    cards::Cards; kwds...)
+
+    N, B = length(format.shape), TYPE2BITS[format.type]
+    #  Create mandatory (required) header cards and remove them from the deck
+    #  if necessary
+    required = Vector{Card{<:Any}}(undef, 3+N)
+    required[1] = popat!(cards, "XTENSION", Card("XTENSION", "IMAGE"))
+    required[2] = popat!(cards, "BITPIX", Card("BITPIX", B))
+    required[3] = popat!(cards, "NAXIS", Card("NAXIS", N))
+    required[4:3+N] .= [popat!(cards, "NAXIS$j",
+        Card("NAXIS$j", format.shape[j])) for j = 1:N]
+    
+    #  Append remaining cards in deck, but first remove the END card
+    popat!(cards, "END")
+    M = length(cards)
+    kards = Vector{Card{<:Any}}(undef, 3+N+M)
+    kards[1:3+N] .= required
+    kards[4+N:3+N+M] .= cards
+    #  END card is implied. It will be appended on write.
+    kards
+end
+
+function create_data(::Type{Image}, format::DataFormat, ::ImageField; kwds...)
+    #  Create simple N-dimensional array of zeros of type BITPIX
+    length(format.shape) > 0 ? zeros(format.type, format.shape) : nothing
 end
