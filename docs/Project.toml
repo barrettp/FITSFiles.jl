@@ -1,1 +1,6 @@
+[deps]
+FITS = "358a0a88-3548-4ad6-b652-8bdbf64af8e5"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 
+[compat]
+Documenter = "1"
