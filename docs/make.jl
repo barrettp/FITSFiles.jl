@@ -27,7 +27,7 @@ makedocs(;
     ],
 )
 
-deployhooks(;
+deploydocs(;
     repo = "github.com/barrettp/FITS.jl/docs",
     devbranch = "main",
     push_preview = true
