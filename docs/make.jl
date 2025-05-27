@@ -1,4 +1,4 @@
-using Documenter, FTIS
+using Documenter, FITS
 
 makedocs(;
     modules = [FITS],
