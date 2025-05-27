@@ -23,7 +23,7 @@ makedocs(;
             "ZTable" => "HDU/ztable.md",
             "Conform" => "HDU/conform.md"
         ],
-        "API" = > "api.md"
+        "API" => "api.md"
     ],
 )
 
