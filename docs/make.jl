@@ -1,3 +1,4 @@
+
 using Documenter, FITS
 
 makedocs(;
@@ -14,6 +15,7 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "HDU" => Any[
+            "Introduction" => "HDU.md",
             "Primary" => "HDU/primary.md",
             "Random" => "HDU/random.md",
             "Image" => "HDU/image.md",
