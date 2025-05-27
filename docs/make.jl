@@ -13,7 +13,7 @@ makedocs(;
     warnonly = [:missing_docs],
     pages = [
         "Home" => "index.md",
-        "HDUs" => Any[
+        "HDU" => Any[
             "Primary" => "hdu/primary.md",
             "Random" => "hdu/random.md",
             "Image" => "hdu/image.md",
