@@ -1,5 +1,5 @@
 # fits.jl
 
 ```@docs
-hdu.Primary
+Primary
 ```
