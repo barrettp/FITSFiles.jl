@@ -14,14 +14,14 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "HDU" => Any[
-            "Primary" => "hdu/primary.md",
-            "Random" => "hdu/random.md",
-            "Image" => "hdu/image.md",
-            "Table" => "hdu/table.md",
-            "Bintable" => "hdu/bintable.md",
-            "ZImage" => "hdu/zimage.md",
-            "ZTable" => "hdu/ztable.md",
-            "Conform" => "hdu/conform.md"
+            "Primary" => "HDU/primary.md",
+            "Random" => "HDU/random.md",
+            "Image" => "HDU/image.md",
+            "Table" => "HDU/table.md",
+            "Bintable" => "HDU/bintable.md",
+            "ZImage" => "HDU/zimage.md",
+            "ZTable" => "HDU/ztable.md",
+            "Conform" => "HDU/conform.md"
         ],
         "API" = > "api.md"
     ],
