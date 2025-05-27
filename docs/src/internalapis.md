@@ -1,1 +1,3 @@
+```@autodocs
 Modules = [FITS]
+```
