@@ -8,7 +8,7 @@ makedocs(;
         assets = ["assets/custom.css"],
         sidebar_sitename = false,
         collapselevel = 1,
-        warn_outdated = true,
+        warn_outdated = true
     ),
     warnonly = [:missing_docs],
     pages = [
@@ -22,7 +22,7 @@ makedocs(;
             "ZImage" => "hdu/zimage.md",
             "ZTable" => "hdu/ztable.md",
             "Conform" => "hdu/conform.md"
-        ]
+        ],
         "API" = > "api.md"
     ],
 )
