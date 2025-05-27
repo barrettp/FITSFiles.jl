@@ -1,4 +1,4 @@
-# fits.jl
+## hdu.jl
 
 ```@docs
 Primary
