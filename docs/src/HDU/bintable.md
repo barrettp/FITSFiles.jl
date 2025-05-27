@@ -1,1 +1,5 @@
+## hdu.jl
 
+```@docs
+Bintable
+```
