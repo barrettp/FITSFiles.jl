@@ -1,5 +1,4 @@
 # hdu.jl
 
 ```@docs
-ZImage
 ```
