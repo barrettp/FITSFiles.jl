@@ -1,3 +1,3 @@
-# ```@autodocs
-# Modules = []
-# ```
+```@autodocs
+Modules = [FITS]
+```
