@@ -1,3 +1,11 @@
 # Header-data unit (HDU)
 
-A list of implemented header-data units. 
+```@docs
+FITS.fits
+FITS.info
+FITS.read
+FITS.write
+FITS.HDU
+FITS.info
+FITS.fits
+```
