@@ -1,5 +1,5 @@
 # hdu.jl
 
 ```@docs
-Image
+FITS.Image
 ```
