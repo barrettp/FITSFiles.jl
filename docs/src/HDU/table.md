@@ -1,5 +1,5 @@
 # hdu.jl
 
 ```@docs
-Table
+FITS.Table
 ```
