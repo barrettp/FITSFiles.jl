@@ -14,6 +14,7 @@ makedocs(;
     warnonly = [:missing_docs],
     pages = [
         "Home" => "index.md",
+        "API" => "api.md",        
         "HDU" => Any[
             "Introduction" => "HDU.md",
             "Primary" => "HDU/primary.md",
@@ -25,7 +26,7 @@ makedocs(;
             "ZTable" => "HDU/ztable.md",
             "Conform" => "HDU/conform.md"
         ],
-        "API" => "api.md"
+        "Internal API" => "internalapi.md"
     ],
 )
 
