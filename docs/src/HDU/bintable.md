@@ -1,5 +1,5 @@
 # hdu.jl
 
 ```@docs
-Bintable
+FITS.Bintable
 ```
