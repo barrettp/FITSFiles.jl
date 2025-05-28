@@ -16,7 +16,7 @@ makedocs(;
         "Home" => "index.md",
         "API" => "api.md",
         "Internal API" => "internalapi.md"
-    ],
+    ]
 )
 
 deploydocs(;
