@@ -190,25 +190,11 @@ end
 
 """
     Card(type, key, value, comment, format)
-
-Create a card type, where type is Comment, Continue, End, Hierarch, History,
-Invalid, or Value{T}.
-"""
-struct Card{T<:AbstractCardType}
-    key::AbstractString
-    value::ValueType
-    comment::AbstractString
-    format::CardFormat
-    function Card(T, key, value, comment, format)
-        new{T}(key, value, comment, format)
-    end
-end
-
-"""
     Card([key, [value, [comment]]]; <keywords>)
     Card("HIERARCH", key, [key, [value, [comment]]]; <keywords>)
 
-Create a standard or Hierarch card type
+Create a card type, where type is Comment, End, Hierarch, History, Invalid, or
+Value{T}.
 
 # Argments
 
@@ -225,6 +211,16 @@ Create a standard or Hierarch card type
 - `rpad::Integer=1`: number of spaces after comment separator
 - `truncate::Bool=true`: truncate comment at end of card
 """
+struct Card{T<:AbstractCardType}
+    key::AbstractString
+    value::ValueType
+    comment::AbstractString
+    format::CardFormat
+    function Card(T, key, value, comment, format)
+        new{T}(key, value, comment, format)
+    end
+end
+
 function Card(key::S = "", value::V = missing, comment::S = ""; append::B=false,
     fixed::B=true, slash::I=32, lpad::I=1, rpad::I=1, truncate::B=true) where
     {B<: Bool, I<:Integer, S<:AbstractString, V<:ValueType}

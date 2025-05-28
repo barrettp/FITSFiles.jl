@@ -57,8 +57,37 @@ Cards = Union{Vector{Card}, Vector{Card{<:Any}}}
 #   HDU type
 """
     HDU{T}(cards, data)
+    HDU([data, [cards]]; <keywords>)
+    HDU(cards; <keywords>)
+    HDU(type, nothing, [cards]; <keywords>)
+    HDU(type, data, [cards]; <keywords>)
 
-Create an header-data unit type, where T is an AbstractHDU.
+Create an header-data unit described by data and cards of type AbstractHDU.
+
+The HDU function tries to determine the HDU type based on the data and cards.
+If only data is provided, then an array is interpreted as a Primary HDU and a
+Tuple or NamedTuple as a BinaryTable. If mandatory cards are provided, then
+they are used to determine the HDU type. Otherwise, the HDU type must be
+specified.
+
+HDU types are: Primary, Random, Image, Table, Bintable, and Conform.
+
+# arguments
+
+- `data::U=nothing`: the binary or ASCII data, where U<:Union{AbstractArray,
+    Tuple, NamedTuple, Nothing}
+- `cards::U=nothing`: the list of cards, where U<:Union{Card, Vector{Card}, Nothing}
+
+# Keywords
+
+- `record::Bool=false`: structure the data as a list of records
+- `scale::Bool=true`: apply the scale and zero keywords to the data
+- `append::Bool=false`: append CONTINUE cards for long strings (>68 characters)
+- `fixed::Bool=true`: create fixed format cards
+- `slash::Integer=32`: character index of the comment separator (/)
+- `lpad::Integer=1`: number of spaces before the comment separator
+- `rpad::Integer=1`: number of spaces after the comment separator
+- `truncate::Bool=true`: truncate the comment string at the end of the card
 """
 struct HDU{S<:AbstractHDU}
     "The vector of cards."
@@ -138,39 +167,6 @@ const RESERVEDKEYS = (
 
 #  Check for header missing END card
 
-"""
-    HDU([data, [cards]]; <keywords>)
-    HDU(cards; <keywords>)
-    HDU(type, nothing, [cards]; <keywords>)
-    HDU(type, data, [cards]; <keywords>)
-
-Create an header-data unit described by data and cards of type AbstractHDU.
-
-The HDU function tries to determine the HDU type based on the data and cards.
-If only data is provided, then an array is interpreted as a Primary HDU and a
-Tuple or NamedTuple as a BinaryTable. If mandatory cards are provided, then
-they are used to determine the HDU type. Otherwise, the HDU type must be
-specified.
-
-HDU types are: Primary, Random, Image, Table, Bintable, and Conform.
-
-# arguments
-
-- `data::U=nothing`: the binary or ASCII data, where U<:Union{AbstractArray,
-    Tuple, NamedTuple, Nothing}
-- `cards::U=nothing`: the list of cards, where U<:Union{Card, Vector{Card}, Nothing}
-
-# Keywords
-
-- `record::Bool=false`: structure the data as a list of records
-- `scale::Bool=true`: apply the scale and zero keywords to the data
-- `append::Bool=false`: append CONTINUE cards for long strings (>68 characters)
-- `fixed::Bool=true`: create fixed format cards
-- `slash::Integer=32`: character index of the comment separator (/)
-- `lpad::Integer=1`: number of spaces before the comment separator
-- `rpad::Integer=1`: number of spaces after the comment separator
-- `truncate::Bool=true`: truncate the comment string at the end of the card
-"""
 function HDU(data::D=nothing, cards::C=nothing; record::B=false,
     scale::B=true, append::B=false, fixed::B=true, slash::I=32, lpad::I=1,
     rpad::I=1, truncate::B=true) where
@@ -393,8 +389,11 @@ typeofhdu(::HDU{T}) where T = T
 
 """
     typeofhdu(data)
+    typeofhdu(dict)
+    typeofhdu(data, dict)
 
-Determine the HDU type based on the data structure.
+Determine the HDU type based on the data structure, the mandatory keywords, or
+both.
 """
 function typeofhdu(data::U) where
     U<:Union{AbstractArray, Tuple, NamedTuple, Nothing}
@@ -419,11 +418,6 @@ function typeofhdu(data::U) where
     type
 end
 
-"""
-    typeofhdu(dict)
-
-Determine the HDU type based on the list of mandatory keywords.
-"""
 function typeofhdu(mankeys::Dict{S, V}) where {S<:AbstractString, V<:ValueType}
     #  Determine HDU type from mandatory keys
     exval = get(mankeys, "XTENSION", nothing)
@@ -449,11 +443,6 @@ function typeofhdu(mankeys::Dict{S, V}) where {S<:AbstractString, V<:ValueType}
     type
 end
 
-"""
-    typeofhdu(data, dict)
-
-Determine the HDU type based on the data and list of mandatory keywords.
-"""
 function typeofhdu(data::U, mankeys::Dict{S, V}) where
     {U<:Union{AbstractArray, Tuple, NamedTuple, Nothing},
     S<:AbstractString, V<:ValueType}
@@ -579,11 +568,6 @@ end
 
 ####    Dictionary-like Key functions
 
-"""
-    haskey(cards, key)
-
-Check for keyword in list of cards.
-"""
 function Base.haskey(cards::Cards, key::AbstractString)
     for card in cards
         if card.key == uppercase(key)
@@ -593,11 +577,6 @@ function Base.haskey(cards::Cards, key::AbstractString)
     false
 end
 
-"""
-    getindex(cards, key)
-
-Get the keyword value in a list of cards.
-"""
 function Base.getindex(cards::Cards, key::AbstractString)
     for card in cards
         if card.key == uppercase(key)
@@ -607,11 +586,6 @@ function Base.getindex(cards::Cards, key::AbstractString)
     throw(KeyError(key))
 end
 
-"""
-    get(cards, key, default=nothing)
-
-Get the keyword value in a list of cards. Return default if not found.
-"""
 function Base.get(cards::Cards, key::AbstractString, default=nothing)
     value = default
     for card in cards

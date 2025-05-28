@@ -2,6 +2,7 @@
 
 `FITS.jl` is a Julia implementation of the Flexible Image Transport System (FITS) file IO standard.
 
-```@docs
-FITS.FITS
+```@autodocs
+Modules = [FITS]
+Pages = ["fitscore.jl", "hdu.jl", "card.jl"]
 ```
