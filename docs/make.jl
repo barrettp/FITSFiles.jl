@@ -15,17 +15,6 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "API" => "api.md",
-        # "HDU" => Any[
-        #     "Introduction" => "HDU.md",
-        #     "Primary" => "HDU/primary.md",
-        #     "Random" => "HDU/random.md",
-        #     "Image" => "HDU/image.md",
-        #     "Table" => "HDU/table.md",
-        #     "Bintable" => "HDU/bintable.md",
-        #     "ZImage" => "HDU/zimage.md",
-        #     "ZTable" => "HDU/ztable.md",
-        #     "Conform" => "HDU/conform.md"
-        # ],
         "Internal API" => "internalapi.md"
     ],
 )
