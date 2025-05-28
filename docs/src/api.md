@@ -1,8 +1,4 @@
-# ```@docs
-# FITS.fits
-# FITS.info
-# FITS.read
-# FITS.write
-# FITS.HDU
-# FITS.Card
-# ```
+```@autodocs
+Modules = [FITS]
+Pages = ["fitscore.jl", card.jl"]
+```
