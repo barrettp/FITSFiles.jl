@@ -1,11 +1,10 @@
 ```@docs
-FITS.parse
-FITS.getindex
-FITS.typeofhdu
-FITS.DataFormat
-FITS.split_cards
+FITS.parse(::Type{Card}, ::AbstractString)
+FITS.getindex(::Vector{Card}, ::AbstractString)
+FITS.typeofhdu(::Union{AbstractArray, Tuple, NameTuple, Nothing})
+FITS.typeofhdu(::Dict)
+FITS.typeofhdu(::Union{AbstractArray, Tuple, NameTuple, Nothing}, ::Dict)
+FITS.DataFormat(::Type, ::Integer, ::Tuple, ::Integer, ::Integer, ::Integer)
+FITS.split_card
 FITS.join_cards
-Base.haskey(::Tuple{Union{Vector{Card}, Vector{Card{<:Any}}}, AbstractString})
-Base.get(::Union{Tuple{Union{Vector{Card}, Vector{Card{<:Any}}}, AbstractString}, Tuple{Union{Vector{Card}, Vector{Card{<:Any}}}, AbstractString, Any}})
-Base.getindex(::Tuple{Union{Vector{Card}, Vector{Card{<:Any}}}, AbstractString})
 ```
