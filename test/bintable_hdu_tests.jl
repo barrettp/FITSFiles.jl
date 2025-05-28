@@ -531,9 +531,9 @@
              Card("TFORM5", "3A"),
              Card("TTYPE5", "par5")]
     seek(io, 0)
-    FITS.write(io, HDU(data, cards))
+    FITSFiles.write(io, HDU(data, cards))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; record=false, scale=true)
+    hdu = FITSFiles.read(io, HDU; record=false, scale=true)
 
     @test isequal(showfields.(hdu.cards),
                   [("XTENSION", "BINTABLE", "",
@@ -600,9 +600,9 @@
              Card("TFORM5", "3A"),
              Card("TTYPE5", "par5")]
     seek(io, 0)
-    FITS.write(io, HDU(data, cards))
+    FITSFiles.write(io, HDU(data, cards))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; record=true, scale=true)
+    hdu = FITSFiles.read(io, HDU; record=true, scale=true)
 
     @test isequal(showfields.(hdu.cards),
                   [("XTENSION", "BINTABLE", "",
@@ -680,9 +680,9 @@
              Card("TSCAL5", 0.5)]
 
     seek(io, 0)
-    FITS.write(io, HDU(data, cards))
+    FITSFiles.write(io, HDU(data, cards))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; record=false, scale=true)
+    hdu = FITSFiles.read(io, HDU; record=false, scale=true)
 
     @test isequal(showfields.(hdu.cards),
                   [("XTENSION", "BINTABLE", "",
@@ -781,9 +781,9 @@
              Card("TSCAL5", 0.1)]
 
     seek(io, 0)
-    FITS.write(io, HDU(data, cards))
+    FITSFiles.write(io, HDU(data, cards))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; record=false, scale=false)
+    hdu = FITSFiles.read(io, HDU; record=false, scale=false)
 
     @test isequal(showfields.(hdu.cards),
                   [("XTENSION", "BINTABLE", "",

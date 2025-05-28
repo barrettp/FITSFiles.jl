@@ -41,13 +41,13 @@ Write a vector of header-data units (HDUs) to a file.
 """
 function write(io::IO, hdus::Vector{HDU})
     for hdu in hdus
-        FITS.write(io, hdu)
+        FITSFiles.write(io, hdu)
     end
 end
 
 function write(file::AbstractString, hdus::Vector{HDU})
     io = open(file, write=true)
-    FITS.write(io, hdus)
+    FITSFiles.write(io, hdus)
     close(io)
 end
 

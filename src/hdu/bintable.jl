@@ -91,7 +91,7 @@ function write(io::IO, ::Type{Bintable}, data::NamedTuple, format::DataFormat,
             for field in fields
                 start = position(io) 
                 value = data[Symbol(field.name)]
-                FITS.write(io, field, ndims(value) >= 2 ? reshape(value[j,:], :) :
+                FITSFiles.write(io, field, ndims(value) >= 2 ? reshape(value[j,:], :) :
                     value[j]; kwds...)
             end
         end

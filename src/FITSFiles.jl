@@ -1,12 +1,12 @@
 """
-FITS.jl is an IO interface to the Flexible Image Transport System (FITS) file
+FITSFiles.jl is a Julia implementation of the Flexible Image Transport System (FITS) file
 format.
 
 FITS files are composed of an array of header-data units (HDUs).
 
 * fits: is the most common function for reading a file.
 """
-module FITS
+module FITSFiles
 
 export CardType, CommentCard, Comment, Continue, End, Hierarch, History
 export Invalid, Value

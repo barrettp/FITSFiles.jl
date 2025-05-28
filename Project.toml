@@ -1,4 +1,4 @@
-name = "FITS"
+name = "FITSFiles"
 uuid = "358a0a88-3548-4ad6-b652-8bdbf64af8e5"
 authors = ["Paul Barrett <pebarrett@gmail.com> and contributors"]
 version = "0.2.0"

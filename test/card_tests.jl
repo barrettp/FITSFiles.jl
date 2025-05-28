@@ -27,13 +27,13 @@
     ###  parse End Cards
 
     #   simple END card
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "END                                                                             ")),
                   ("END", missing, "",
                    "END                                                                             "))
 
     #   Invalid END card
-    @test isequal(typeof(FITS.parse(Card,
+    @test isequal(typeof(FITSFiles.parse(Card,
                    "END       a value                                                               ")),
                    Card{Invalid})
 
@@ -55,7 +55,7 @@
                    "                                                                                "))
 
     #  parse blank keyword
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "               / exposure information                                           ")),
                   ("", "       / exposure information", "",
                    "               / exposure information                                           "))
@@ -66,19 +66,19 @@
     ###  parse Blank keyword
 
     #  parse blank keyword without comment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "                                                                                ")),
                    ("", "", "",
                    "                                                                                "))
 
     #  parse blank keyword with commment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "        A comment                                                               ")),
                    ("", "A comment", "",
                    "        A comment                                                               "))
 
     #  parse blank keyword with apparent commment string
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "                               / A comment                                      ")),
                    ("", "                       / A comment", "",
                    "                               / A comment                                      "))
@@ -114,25 +114,25 @@
     ###  parse COMMENT keyword
 
     #  parse blank keyword without comment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "COMMENT                                                                         ")),
                    ("COMMENT", "", "",
                    "COMMENT                                                                         "))
 
     #  parse blank keyword with commment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "COMMENT A comment                                                               ")),
                    ("COMMENT", "A comment", "",
                    "COMMENT A comment                                                               "))
 
     #  parse blank keyword with apparent commment string
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "COMMENT                        / A comment                                      ")),
                    ("COMMENT", "                       / A comment", "",
                    "COMMENT                        / A comment                                      "))
 
     #  parse Comment Card string
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "COMMENT card has no comments. / text after slash is still part of the value.    ")),
                   ("COMMENT", "card has no comments. / text after slash is still part of the value.", "",
                    "COMMENT card has no comments. / text after slash is still part of the value.    "))
@@ -168,31 +168,31 @@
     ###  parse HISTORY keyword
 
     #  parse blank keyword without comment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "HISTORY                                                                         ")),
                    ("HISTORY", "", "",
                    "HISTORY                                                                         "))
 
     #  parse blank keyword with commment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "HISTORY A comment                                                               ")),
                    ("HISTORY", "A comment", "",
                    "HISTORY A comment                                                               "))
 
     #  parse blank keyword with apparent commment string
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "HISTORY                        / A comment                                      ")),
                    ("HISTORY", "                       / A comment", "",
                    "HISTORY                        / A comment                                      "))
 
     #  parse History Card with numerical value.
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "HISTORY  (1, 2)                                                                 ")),
                   ("HISTORY", " (1, 2)", "",
                    "HISTORY  (1, 2)                                                                 "))
     
     #  parse History Card  with equal sign (=) in column >=9
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "HISTORY =   (1, 2)                                                              ")),
                   ("HISTORY", "=   (1, 2)", "",
                    "HISTORY =   (1, 2)                                                              "))
@@ -218,7 +218,7 @@
                    "BOOL    =                    T                                                  "))
 
     #  parse Value card with boolean value, fixed format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "BOOL    =                    T                                                  ")),
                   ("BOOL", true, "",
                    "BOOL    =                    T                                                  "))
@@ -229,11 +229,11 @@
                    "BOOL    = T                                                                     "))
 
     #  parse Value card with boolean value, free format
-    @test FITS.parse(Card, "BOOL    = T                                                                     "
+    @test FITSFiles.parse(Card, "BOOL    = T                                                                     "
                     ).format.fixd == false
 
     #  parse Value card with boolean value, free format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "BOOL    = T                                                                     ")),
                   ("BOOL", true, "",
                    "BOOL    = T                                                                     "))
@@ -244,7 +244,7 @@
                    "BOOL    =                    T / a comment string                               "))
  
     #  parse Value card with boolean value and comment, fixed format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "BOOL    =                    T / a comment string                               ")),
                   ("BOOL", true, "a comment string",
                    "BOOL    =                    T / a comment string                               "))
@@ -255,7 +255,7 @@
                    "BOOL    = T                    / a comment string                               "))
 
     #  parse Value card with boolean value and comment, free format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "BOOL    = T                    / a comment string                               ")),
                   ("BOOL", true, "a comment string",
                    "BOOL    = T                    / a comment string                               "))
@@ -274,7 +274,7 @@
                    "INTEGER =                12345                                                  "))
 
     #  parse Value Card with integer value fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "INTEGER =                12345                                                  ")),
                   ("INTEGER", 12345, "",
                    "INTEGER =                12345                                                  "))
@@ -285,11 +285,11 @@
                    "INTEGER = 12345                                                                 "))
 
     #  parse Value Card with integer value free-format
-    @test FITS.parse(Card, "INTEGER = 12345                                                                 "
+    @test FITSFiles.parse(Card, "INTEGER = 12345                                                                 "
                     ).format.fixd == false
 
     #  parse Value Card with integer value free-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "INTEGER = 12345                                                                 ")),
                   ("INTEGER", 12345, "",
                    "INTEGER = 12345                                                                 "))
@@ -300,7 +300,7 @@
                    "INTEGER =                12345 / a comment string                               "))
 
     #  parse Value card with integer value and comment, fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "INTEGER =                12345 / a comment string                               ")),
                   ("INTEGER", 12345, "a comment string",
                    "INTEGER =                12345 / a comment string                               "))
@@ -311,7 +311,7 @@
                    "INTEGER = 12345                / a comment string                               "))
 
     #  parse Value card with integer value and comment, free-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "INTEGER = 12345                / a comment string                               ")),
                   ("INTEGER", 12345, "a comment string",
                    "INTEGER = 12345                / a comment string                               "))
@@ -325,7 +325,7 @@
                    "LONG_INT= -467374636747637647347374734737437                                    "))
 
     #  parse Value Card with big integer value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "LONG_INT= -467374636747637647347374734737437                                    ")),
                   ("LONG_INT", -467374636747637647347374734737437, "",
                    "LONG_INT= -467374636747637647347374734737437                                    "))
@@ -336,7 +336,7 @@
                    "LONG_INT= -467374636747637647347374734737437 / a comment string                 "))
 
     #  parse Value Card with big integer value and comment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "LONG_INT= -467374636747637647347374734737437 / a comment string                 ")),
                   ("LONG_INT", -467374636747637647347374734737437, "a comment string",
                    "LONG_INT= -467374636747637647347374734737437 / a comment string                 "))
@@ -378,7 +378,7 @@
                    "FLOAT_32=             1.2345E6                                                  "))
 
     #  create Value Card with 32-bit float value, fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_32=             1.2345E6                                                  ")),
                    ("FLOAT_32", 1.2345f6, "",
                    "FLOAT_32=             1.2345E6                                                  "))
@@ -397,7 +397,7 @@
                    "FLOAT_64=               1.2345                                                  "))
 
     #  parse Value Card with 64-bit float value, fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_64=         1.2345678901                                                  ")),
                   ("FLOAT_64", 1.2345678901, "",
                    "FLOAT_64=         1.2345678901                                                  "))
@@ -408,11 +408,11 @@
                    "FLOAT_64= 1.2345                                                                "))
 
     #  test Value Card with 64-bit floating point value
-    @test FITS.parse(Card, "FLOAT_64= 1.2345                                                                "
+    @test FITSFiles.parse(Card, "FLOAT_64= 1.2345                                                                "
                     ).format.fixd == false
            
     #  parse Value Card with 64-bit float value, free-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_64= 1.2345678901                                                          ")),
                   ("FLOAT_64", 1.2345678901, "",
                    "FLOAT_64= 1.2345678901                                                          "))
@@ -423,7 +423,7 @@
                    "FLOAT_64=               1.2345 / a comment string                               "))
 
     #  parse Value Card with 64-bit float value, fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_64=         1.2345678901 / a comment string                               ")),
                   ("FLOAT_64", 1.2345678901, "a comment string",
                    "FLOAT_64=         1.2345678901 / a comment string                               "))
@@ -434,7 +434,7 @@
                    "FLOAT_64= 1.2345               / a comment string                               "))
 
                #  parse Value Card with 64-bit float value, free-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_64= 1.2345678901         / a comment string                               ")),
                   ("FLOAT_64", 1.2345678901, "a comment string",
                    "FLOAT_64= 1.2345678901         / a comment string                               "))
@@ -445,19 +445,19 @@
                    "FLOAT_64=             1.2345D6                                                  "))
 
     #  parse Value Card with 64-bit float value, fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_64=             1.2345D6                                                  ")),
                   ("FLOAT_64", 1.2345e6, "",
                    "FLOAT_64=             1.2345D6                                                  "))
 
     #  parse Value Card with 64-bit float value having high precision, fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_64=   1.23456789012345E6                                                  ")),
                   ("FLOAT_64", 1.23456789012345e6, "",
                    "FLOAT_64=   1.23456789012345D6                                                  "))
 
     #  parse Value Card with 64-bit float value having high exponent, fixed-format
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "FLOAT_64=            1.2345E39                                                  ")),
                   ("FLOAT_64", 1.2345e39, "",
                    "FLOAT_64=            1.2345D39                                                  "))
@@ -474,7 +474,7 @@
                    "CPLX_INT= (8, 9)                                                                "))
 
     #  parse Value Card with complex 64-bit integer value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_INT= (8, 9)                                                                ")),
                   ("CPLX_INT", 8 + 9im, "",
                    "CPLX_INT= (8, 9)                                                                "))
@@ -485,7 +485,7 @@
                    "CPLX_INT= (8, 9)               / a comment string                               "))
 
     #  parse Value Card with complex 64-bit integer value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_INT= (8, 9)               / a comment string                               ")),
                   ("CPLX_INT", 8 + 9im, "a comment string",
                    "CPLX_INT= (8, 9)               / a comment string                               "))
@@ -518,7 +518,7 @@
                    "CPLX_F64= (8.1, 9.2)                                                            "))
 
     #  parse Value Card with complex 64-bit float value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_F64= (8.1, 9.2)                                                            ")),
                   ("CPLX_F64", 8.1 + 9.2im, "",
                    "CPLX_F64= (8.1, 9.2)                                                            "))
@@ -529,7 +529,7 @@
                    "CPLX_F64= (8.1, 9.2)           / a comment string                               "))
 
     #  parse Value Card with complex 64-bit float value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_F64= (8.1, 9.2)           / a comment string                               ")),
                   ("CPLX_F64", 8.1 + 9.2im, "a comment string",
                    "CPLX_F64= (8.1, 9.2)           / a comment string                               "))
@@ -562,7 +562,7 @@
                    "CPLX_F64= (8.1, 9.0)                                                            "))
 
     #  parse Value Card with complex 64-bit float and integer value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_F64= (8.1, 9)                                                              ")),
                   ("CPLX_F64", 8.1 + 9.0im, "",
                    "CPLX_F64= (8.1, 9.0)                                                            "))
@@ -573,7 +573,7 @@
                    "CPLX_F64= (8.1, 9.0)           / a comment string                               "))
 
     #  parse Value Card with complex 64-bit float and integer value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_F64= (8.1, 9)             / a comment string                               ")),
                   ("CPLX_F64", 8.1 + 9.0im, "a comment string",
                    "CPLX_F64= (8.1, 9.0)           / a comment string                               "))
@@ -590,7 +590,7 @@
                    "CPLX_F64= (8.0, 9.2)                                                            "))
 
     #  parse Value Card with complex integer and 64-bit float value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_F64= (8, 9.2)                                                              ")),
                   ("CPLX_F64", 8.0 + 9.2im, "",
                    "CPLX_F64= (8.0, 9.2)                                                            "))
@@ -601,7 +601,7 @@
                    "CPLX_F64= (8.0, 9.2)           / a comment string                               "))
 
     #  parse Value Card with complex integer and 64-bit float value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "CPLX_F64= (8, 9.2)             / a comment string                               ")),
                   ("CPLX_F64", 8.0 + 9.2im, "a comment string",
                    "CPLX_F64= (8.0, 9.2)           / a comment string                               "))
@@ -617,7 +617,7 @@
                    "STRING  = ''                                                                    "))
 
     #  parse Value Card with a null string
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = ''                                                                    ")),
                   ("STRING", "", "",
                    "STRING  = ''                                                                    "))
@@ -628,7 +628,7 @@
                    "STRING  = '        '                                                            "))
 
     #  parse Value Card with an empty string
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = '        '                                                            ")),
                   ("STRING", "        ", "",
                    "STRING  = '        '                                                            "))
@@ -639,7 +639,7 @@
                    "STRING  = 'a value string'                                                      "))
 
     #  parse Value Card with string value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = 'a value string'                                                      ")),
                   ("STRING", "a value string", "",
                    "STRING  = 'a value string'                                                      "))
@@ -650,7 +650,7 @@
                    "STRING  = 'a value string'     / a comment string                               "))
 
     #  parse Value Card with string value
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = 'a value string'     / a comment string                               ")),
                   ("STRING", "a value string", "a comment string",
                    "STRING  = 'a value string'     / a comment string                               "))
@@ -661,7 +661,7 @@
                    "STRING  = '<8 ch'                                                               "))
 
     #  parse Value Card with string of <8 characters
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = '<8 ch'                                                               ")),
                   ("STRING", "<8 ch", "",
                    "STRING  = '<8 ch'                                                               "))
@@ -672,7 +672,7 @@
                    "STRING  = 'Kelley O''Hara'                                                      "))
 
     #  parse String Card have a string with a single quote
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = 'Kelley O''Hara'                                                      ")),
                   ("STRING", "Kelley O'Hara", "",
                    "STRING  = 'Kelley O''Hara'                                                      "))
@@ -683,7 +683,7 @@
                    "STRING  = 'Kelley O''Hara'     / a comment string                               "))
 
     #  parse String Card have a string with a single quote and comment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = 'Kelley O''Hara'     / a comment string                               ")),
                   ("STRING", "Kelley O'Hara", "a comment string",
                    "STRING  = 'Kelley O''Hara'     / a comment string                               "))
@@ -694,7 +694,7 @@
                    "STRING  = 'Kelley O''Hara'     / a comment string with single quote '           "))
 
     #  parse String Card have a string with a single quote and comment with a single quote
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = 'Kelley O''Hara'     / a comment string with single quote '           ")),
                   ("STRING", "Kelley O'Hara", "a comment string with single quote '",
                    "STRING  = 'Kelley O''Hara'     / a comment string with single quote '           "))
@@ -705,7 +705,7 @@
                    "STRING  = '----------------------------------------------------------' / a trunc"))
 
     #  parse String Card that truncates comment
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "STRING  = '----------------------------------------------------------' / a trunc")),
                   ("STRING", "----------------------------------------------------------", "a trunc",
                    "STRING  = '----------------------------------------------------------' / a trunc"))
@@ -716,7 +716,7 @@
                    "LONGCOM = '19 character string'/a comment string                                "))
 
     #  parse Value card with no left and right padding for comment separator
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "LONGCOM = '19 character string'/a comment string                                ")),
                   ("LONGCOM", "19 character string", "a comment string",
                    "LONGCOM = '19 character string'/a comment string                                "))
@@ -727,7 +727,7 @@
 #                   "LONGCOM = 'character string'    /    a comment string                           "))
     
     #  parse Value card with 4 spaces each for left and right padding for comment separator
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "LONGCOM = 'character string'    /    a comment string                           ")),
                   ("LONGCOM", "character string", "a comment string",
                    "LONGCOM = 'character string'    /    a comment string                           "))
@@ -854,7 +854,7 @@
                    "XTENSION= 'BINTABLE'           / a comment string                               "))
  
      #   parse Value Card having Bintable XTENSION
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "XTENSION= 'BINTABLE'           / a comment string                               ")),
                   ("XTENSION", "BINTABLE", "a comment string",
                    "XTENSION= 'BINTABLE'           / a comment string                               "))
@@ -880,7 +880,7 @@
     
     #  parse HIERARCH keyword and value
     #=
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "HIERARCH ABC DEF GH IJKLMN = -99.9                                              ")),
                    ("ABC DEF GH IJKLMN", -99.9, "",
                    "HIERARCH ABC DEF GH IJKLMN = -99.9                                              "))
@@ -893,7 +893,7 @@
     
     #  parse HIERARCH keyword and value with comment
     #=
-    @test isequal(showfields(FITS.parse(Card,
+    @test isequal(showfields(FITSFiles.parse(Card,
                    "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       ")),
                   ("ABC DEF GH IJKLMN", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab",
                    "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       "))

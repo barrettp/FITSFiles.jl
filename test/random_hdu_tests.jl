@@ -371,9 +371,9 @@
        (par1=3.0f0, par2=3.0f0, par3=3.0f0,
         data=Float32[3 3 3; 4 4 4;;; 5 5 5; 6 6 6;;; 7 7 7; 8 8 8;;; 9 9 9; 10 10 10])]
     seek(io, 0)
-    FITS.write(io, HDU(Random, data))
+    FITSFiles.write(io, HDU(Random, data))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; record=false)
+    hdu = FITSFiles.read(io, HDU; record=false)
 
     @test isequal(showfields.(hdu.cards),
                   [("SIMPLE", true, "",
@@ -415,9 +415,9 @@
        (par1=3.0f0, par2=3.0f0, par3=3.0f0,
         data=Float32[3 3 3; 4 4 4;;; 5 5 5; 6 6 6;;; 7 7 7; 8 8 8;;; 9 9 9; 10 10 10])]
     seek(io, 0)
-    FITS.write(io, HDU(Random, data))
+    FITSFiles.write(io, HDU(Random, data))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; record=true)
+    hdu = FITSFiles.read(io, HDU; record=true)
 
     @test isequal(showfields.(hdu.cards),
                   [("SIMPLE", true, "",
@@ -478,9 +478,9 @@
         Card("PZERO3", 1.0),
         Card("PSCAL3", 0.1)]
     seek(io, 0)
-    FITS.write(io, HDU(Random, data, cards))
+    FITSFiles.write(io, HDU(Random, data, cards))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; scale=true)
+    hdu = FITSFiles.read(io, HDU; scale=true)
 
     @test isequal(showfields.(hdu.cards),
                   [("SIMPLE", true, "",
@@ -554,9 +554,9 @@
         Card("PZERO3", 1.0),
         Card("PSCAL3", 0.1)]
     seek(io, 0)
-    FITS.write(io, HDU(Random, data, cards))
+    FITSFiles.write(io, HDU(Random, data, cards))
     seek(io, 0)
-    hdu = FITS.read(io, HDU; scale=false)
+    hdu = FITSFiles.read(io, HDU; scale=false)
 
     @test isequal(showfields.(hdu.cards),
                   [("SIMPLE", true, "",

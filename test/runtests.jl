@@ -1,4 +1,4 @@
-using FITS
+using FITSFiles
 using Test
 
 showfields(card) = Tuple(push!([getfield(card, k) for k in fieldnames(Card)[1:3]], repr(card)))
