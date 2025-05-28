@@ -1,9 +1,9 @@
 
-using Documenter, FITS
+using Documenter, FITSFiles
 
 makedocs(;
-    modules = [FITS],
-    sitename = "FITS.jl",
+    modules = [FITSFiles],
+    sitename = "FITSFiles.jl",
     authors = "Paul Barrett",
     format = Documenter.HTML(;
         assets = ["assets/custom.css"],
@@ -13,12 +13,12 @@ makedocs(;
     ),
     warnonly = [:missing_docs],
     pages = [
-        "FITS" => "index.md"
+        "FITSFiles" => "index.md"
     ]
 )
 
 deploydocs(;
-    repo = "github.com/barrettp/FITS.jl/docs",
+    repo = "github.com/barrettp/FITSFiles.jl/docs",
     devbranch = "main",
     push_preview = true
 )
