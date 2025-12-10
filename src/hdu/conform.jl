@@ -3,7 +3,7 @@
 struct ConformField <: AbstractField
 end
 
-function read(io::IO, ::Type{Conform}, format::DataFormat,
+function Base.read(io::IO, ::Type{Conform}, format::DataFormat,
     fields=ConformField; scale=true, kwds...)
 
     begpos = position(io)
@@ -27,7 +27,7 @@ function read(io::IO, ::Type{Conform}, format::DataFormat,
     data
 end
 
-function write(io::IO, ::Type{Conform}, data::AbstractArray,
+function Base.write(io::IO, ::Type{Conform}, data::AbstractArray,
         format::DataFormat, fields=ConformField; kwds...)
 
     data = remove_units(data)

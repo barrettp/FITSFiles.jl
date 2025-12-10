@@ -22,7 +22,7 @@ struct TableField
     lmax::Union{Real, Nothing}
 end
 
-function read(io::IO, type::Type{Table}, format::DataFormat,
+function Base.read(io::IO, type::Type{Table}, format::DataFormat,
     fields::Vector{TableField}; record=false, kwds...)
 
     begpos = position(io)
@@ -30,7 +30,7 @@ function read(io::IO, type::Type{Table}, format::DataFormat,
     #  Read data array
     if N > 0
         if record
-            row = [String(Base.read(io, M)) for j = 1:N]
+            row = [String(read(io, M)) for j = 1:N]
             data = [(; [read(row[j], field; kwds...) for field in fields]...)
                 for j = 1:N]
         else
@@ -42,12 +42,12 @@ function read(io::IO, type::Type{Table}, format::DataFormat,
     else
         data = nothing
     end
-    
+
     ####    Apply WCS
     data
 end
 
-function write(io::IO, type::Type{Table}, data::AbstractArray,
+function Base.write(io::IO, type::Type{Table}, data::AbstractArray,
     format::DataFormat, fields::Vector{TableField}; kwds...)
 
     #  Write data array
@@ -58,16 +58,16 @@ function write(io::IO, type::Type{Table}, data::AbstractArray,
             for field in fields
                 write(io, data[j][Symbol(field.name)], field, begpos; kwds...)
             end
-            Base.write(io, repeat(" ", format.shape[1]-(position(io)-begpos)))
+            write(io, repeat(" ", format.shape[1]-(position(io)-begpos)))
         end
         #  Pad last block with spaces
         padblock(io, format, 0x20)
     end
 end
 
-function write(io::IO, ::Type{Table}, data::NamedTuple, format::DataFormat,
+function Base.write(io::IO, ::Type{Table}, data::NamedTuple, format::DataFormat,
     fields::Vector{TableField}; kwds...)
-    
+
     #  Write data array
     N = format.shape[2]
     if N > 0
@@ -76,7 +76,7 @@ function write(io::IO, ::Type{Table}, data::NamedTuple, format::DataFormat,
             for field in fields
                 write(io, data[Symbol(field.name)][j], field, begpos; kwds...)
             end
-            Base.write(io, repeat(" ", format.shape[1]-(position(io)-begpos)))
+            write(io, repeat(" ", format.shape[1]-(position(io)-begpos)))
         end
         #  Pad last block with spaces
         padblock(io, format, 0x20)
@@ -277,7 +277,7 @@ function create_data(::Type{Table}, format::DataFormat,
     end
 end
 
-function read(io::IO, field::TableField, format::DataFormat, begpos::Integer;
+function Base.read(io::IO, field::TableField, format::DataFormat, begpos::Integer;
     scale=true)
 
     type, leng = field.type, length(field.slice)
@@ -306,7 +306,7 @@ function read(io::IO, field::TableField, format::DataFormat, begpos::Integer;
     column
 end
 
-function read(row::AbstractString, field::TableField; scale=true, invalid=true)
+function Base.read(row::AbstractString, field::TableField; scale=true, invalid=true)
 
     type, leng = field.type, length(field.slice)
     item = row[field.slice]
@@ -325,9 +325,9 @@ function read(row::AbstractString, field::TableField; scale=true, invalid=true)
     isempty(field.name) ? value : Symbol(field.name) => value
 end
 
-function write(io::IO, data::ValueType, field::TableField, begpos::Integer; kwds...)
+function Base.write(io::IO, data::ValueType, field::TableField, begpos::Integer; kwds...)
     fmt = replace(field.form, "D" => "E", "I" => "i", "A" => "s")
     value = Printf.format(Printf.Format("%$(fmt[2:end])$(fmt[1])"), data)
-    Base.write(io, repeat(" ", field.slice.start - (position(io) - begpos + 1)))
-    Base.write(io, occursin("D", field.form) ? replace(value, "E" => "D") : value)
+    write(io, repeat(" ", field.slice.start - (position(io) - begpos + 1)))
+    write(io, occursin("D", field.form) ? replace(value, "E" => "D") : value)
 end

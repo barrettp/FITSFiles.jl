@@ -111,9 +111,9 @@
              Card("BZERO", 1.0),
              Card("BSCALE", 0.1)]
     seek(io, 0)
-    FITSFiles.write(io, HDU(data, cards))
+    write(io, HDU(data, cards))
     seek(io, 0)
-    hdu = FITSFiles.read(io, HDU; scale=true)
+    hdu = read(io, HDU; scale=true)
 
     @test isequal(showfields.(hdu.cards),
                   [("XTENSION", "IMAGE   ", "",
@@ -144,9 +144,9 @@
              Card("BZERO", 1.0),
              Card("BSCALE", 0.1)]
     seek(io, 0)
-    FITSFiles.write(io, HDU(data, cards))
+    write(io, HDU(data, cards))
     seek(io, 0)
-    hdu = FITSFiles.read(io, HDU; scale=false)
+    hdu = read(io, HDU; scale=false)
 
 
     @test isequal(showfields.(hdu.cards),

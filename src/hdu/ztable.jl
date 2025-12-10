@@ -13,11 +13,11 @@ struct ZTableField
     param::Int64
 end
 
-function read(io::IO, ::Type{ZTable}, cards::Vector{Card}; kwds...)
+function Base.read(io::IO, ::Type{ZTable}, cards::Vector{Card}; kwds...)
 
 end
 
-function write(io::IO, ::Type{ZTable}, cards::Vector{Card}; kwds...)
+function Base.write(io::IO, ::Type{ZTable}, cards::Vector{Card}; kwds...)
 
 end
 

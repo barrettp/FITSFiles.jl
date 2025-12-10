@@ -33,7 +33,7 @@ struct BinaryField <: AbstractField
     lmax::Union{Real, Nothing}         #  Maximum physical value of field
 end
 
-function read(io::IO, ::Type{Bintable}, format::DataFormat,
+function Base.read(io::IO, ::Type{Bintable}, format::DataFormat,
     fields::Vector{BinaryField}; record=false, kwds...)
 
     begpos = position(io)
@@ -51,7 +51,7 @@ function read(io::IO, ::Type{Bintable}, format::DataFormat,
         #  Seek to the beginning of the heap
         seek(io, begpos + (format.param > 0 ? format.heap : M*N))
         #  Read the heap
-        ntoh.(Base.read(io, P))
+        ntoh.(read(io, P))
         #  Seek to the end of block
         seek(io, begpos + BLOCKLEN*div(M*N + P, BLOCKLEN, RoundUp))
     else
@@ -62,7 +62,7 @@ function read(io::IO, ::Type{Bintable}, format::DataFormat,
     data
 end
 
-function write(io::IO, ::Type{Bintable}, data::AbstractArray,
+function Base.write(io::IO, ::Type{Bintable}, data::AbstractArray,
     format::DataFormat, fields::Vector{BinaryField}; kwds...)
 
     #  Write data array
@@ -80,18 +80,18 @@ function write(io::IO, ::Type{Bintable}, data::AbstractArray,
     end
 end
 
-function write(io::IO, ::Type{Bintable}, data::NamedTuple, format::DataFormat,
+function Base.write(io::IO, ::Type{Bintable}, data::NamedTuple, format::DataFormat,
     fields::Vector{BinaryField}; kwds...)
-    
+
     #  Write data array
     N = format.shape[2]
     if N > 0
         for j=1:N
             start = position(io)
             for field in fields
-                start = position(io) 
+                start = position(io)
                 value = data[Symbol(field.name)]
-                FITSFiles.write(io, field, ndims(value) >= 2 ? reshape(value[j,:], :) :
+                write(io, field, ndims(value) >= 2 ? reshape(value[j,:], :) :
                     value[j]; kwds...)
             end
         end
@@ -120,7 +120,7 @@ function verify!(::Type{Bintable}, cards::Cards, format::DataFormat,
     if haskey(mankeys, "GCOUNT") && (format.group != mankeys["GCOUNT"])
         setindex!(cards, format.group, "GCOUNT")
         println("Warning: GCOUNT set to $(format.group)")
-    end    
+    end
     cards
 end
 
@@ -175,7 +175,7 @@ function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
         dmax  = get(reskeys, "TDMAX$j", nothing)
         lmin  = get(reskeys, "TLMIN$j", nothing)
         lmax  = get(reskeys, "TLMAX$j", nothing)
-        
+
         fields[j] = BinaryField(name, pntr, type, k+1:k+byts, leng, supp,
             unit_, disp, dims, zero_, scale, null, dmin, dmax, lmin, lmax)
         k += byts
@@ -222,7 +222,7 @@ function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
         dmax  = get(reskeys, "TDMAX$j", nothing)
         lmin  = get(reskeys, "TLMIN$j", nothing)
         lmax  = get(reskeys, "TLMAX$j", nothing)
-        
+
         fields[j] = BinaryField(name, pntr, type, k+1:k+byts, leng, supp,
             unit_, disp, dims, zero_, scale, null, dmin, dmax, lmin, lmax)
         k += byts
@@ -272,7 +272,7 @@ function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
         dmax  = get(reskeys, "TDMAX$j", nothing)
         lmin  = get(reskeys, "TLMIN$j", nothing)
         lmax  = get(reskeys, "TLMAX$j", nothing)
-        
+
         fields[j] = BinaryField(name, pntr, type, k+1:k+byts, leng, supp,
             unit_, disp, dims, zero_, scale, null, dmin, dmax, lmin, lmax)
         k += byts
@@ -371,7 +371,7 @@ function bintab_zeros(f, n)
     end
 end
 
-function read(io::IO, field::BinaryField, format::DataFormat, begpos::Integer;
+function Base.read(io::IO, field::BinaryField, format::DataFormat, begpos::Integer;
     scale=true)
 
     type, leng = field.type, field.leng
@@ -383,64 +383,64 @@ function read(io::IO, field::BinaryField, format::DataFormat, begpos::Integer;
         column = Array{Vector{type}}(undef, N)
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
-            K   = ntoh(Base.read(io, pntr))
-            beg = ntoh(Base.read(io, pntr))
+            K   = ntoh(read(io, pntr))
+            beg = ntoh(read(io, pntr))
             seek(io, begpos + format.heap + beg)
-            col = ntoh.([Base.read(io, type) for k = 1:K])
+            col = ntoh.([read(io, type) for k = 1:K])
             column[j] = scale ? field.zero .+ field.scale.*col : col
         end
     elseif type <: Bool
         column = Array{type}(undef, N)
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
-            column[j] = Base.read(io, type)
+            column[j] = read(io, type)
         end
     elseif type <: BitVector
         column = Array{type}(undef, N)
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
-            column[j] = Base.read(io, type, leng)
+            column[j] = read(io, type, leng)
         end
     elseif type <: AbstractString
         column = Array{String}(undef, N)
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
-            column[j] = rstrip(type(Base.read(io, length(field.slice))))
+            column[j] = rstrip(type(read(io, length(field.slice))))
         end
     elseif leng == 1
         column = Array{type}(undef, N)
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
-            column[j] = ntoh(Base.read(io, type))
+            column[j] = ntoh(read(io, type))
         end
         column = scale ? field.zero .+ field.scale.*column : column
     else
         column = Array{type}(undef, (N, leng))
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
-            column[j,:] .= ntoh.([Base.read(io, type) for k=1:leng])
+            column[j,:] .= ntoh.([read(io, type) for k=1:leng])
         end
         column = scale ? field.zero .+ field.scale.*column : column
     end
     column
 end
 
-function read(io::IO, field::BinaryField; scale=true)
+function Base.read(io::IO, field::BinaryField; scale=true)
 
     name, type, leng = field.name, field.type, field.leng
 
     n = position(io)
     if type <: AbstractString
-        value = type(Base.read(io, length(field.slice)))
+        value = type(read(io, length(field.slice)))
     elseif type <: BitVector
-        value = Base.read(io, type, leng)
+        value = read(io, type, leng)
     elseif leng == 0
         value = nothing
     elseif leng == 1
-        value = ntoh(Base.read(io, type))
+        value = ntoh(read(io, type))
         value = scale ? field.zero + field.scale*value : value
     else
-        value = ntoh.([Base.read(io, type) for j=1:leng])
+        value = ntoh.([read(io, type) for j=1:leng])
         value = scale ? field.zero .+ field.scale.*value : value
     end
 
@@ -450,21 +450,21 @@ function read(io::IO, field::BinaryField; scale=true)
     Symbol(rstrip(name)) => value
 end
 
-function write(io::IO, field::BinaryField, value::U; kwds...) where
+function Base.write(io::IO, field::BinaryField, value::U; kwds...) where
     U<:Union{AbstractArray, AbstractString, BitVector, Real, Complex}
 
     type, leng = field.type, field.leng
 
     if type <: AbstractString
-        Base.write(io, rpad(value, field.leng))
+        write(io, rpad(value, field.leng))
     elseif type <: BitVector
-        Base.write(io, type, value)
+        write(io, type, value)
     elseif leng == 0
         0
     elseif leng == 1
-        Base.write(io, hton(value))
+        write(io, hton(value))
     else
-        Base.write(io, hton.(value))
+        write(io, hton.(value))
     end
 end
 
@@ -473,7 +473,7 @@ function Base.read(io::IO, ::Type{BitVector}, len)
     bv  = falses(len)
     if len > 0
         siz = (len-1)÷8 + 1
-        vec = [Base.read(io, UInt8) for j=1:siz]
+        vec = [read(io, UInt8) for j=1:siz]
         unsafe_copyto!(reinterpret(Ptr{UInt8}, pointer(bv.chunks)), pointer(vec), siz)
     end
     bv
@@ -484,5 +484,5 @@ function Base.write(io::IO, ::Type{BitVector}, value)
     siz = (length(value)-1)÷8 + 1
     vec = zeros(UInt8, siz)
     unsafe_copyto!(pointer(vec), reinterpret(Ptr{UInt8}, pointer(value.chunks)), siz)
-    Base.write(io, vec)
+    write(io, vec)
 end

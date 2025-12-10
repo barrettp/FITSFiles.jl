@@ -19,7 +19,7 @@ struct RandomField <: AbstractField
     scale::Union{Real, Nothing}
 end
 
-function read(io::IO, ::Type{Random}, format::DataFormat,
+function Base.read(io::IO, ::Type{Random}, format::DataFormat,
     fields::Vector{RandomField}; record=false, kwds...)
 
     begpos = position(io)
@@ -57,7 +57,7 @@ function read(io::IO, ::Type{Random}, format::DataFormat,
     data
 end
 
-function write(io::IO, ::Type{Random}, data::AbstractArray,
+function Base.write(io::IO, ::Type{Random}, data::AbstractArray,
     format::DataFormat, fields::Vector{RandomField}; kwds...)
 
     #  Write data array
@@ -66,19 +66,19 @@ function write(io::IO, ::Type{Random}, data::AbstractArray,
         for j=1:N
             for field in fields[1:format.param]
                 value = data[j][Symbol(field.name)]
-                Base.write(io, hton(ndims(value) > 1 ? value[field.index] :
+                write(io, hton(ndims(value) > 1 ? value[field.index] :
                     value))
             end
             field = fields[end]
             value = reshape(data[j][Symbol(field.name)], :)
-            Base.write(io, hton.(value))
+            write(io, hton.(value))
         end
         #  Pad last block with zeros
         padblock(io, format)
     end
 end
 
-function write(io::IO, ::Type{Random}, data::NamedTuple, format::DataFormat,
+function Base.write(io::IO, ::Type{Random}, data::NamedTuple, format::DataFormat,
     fields::Vector{RandomField}; kwds...)
 
     #  Write data array
@@ -87,12 +87,12 @@ function write(io::IO, ::Type{Random}, data::NamedTuple, format::DataFormat,
         for j=1:N
             for field in fields[1:format.param]
                 value = data[Symbol(field.name)]
-                Base.write(io, hton(ndims(value) > 1 ? value[j, field.index] :
+                write(io, hton(ndims(value) > 1 ? value[j, field.index] :
                     value[j]))
             end
             field = fields[end]
             value = reshape(data[Symbol(field.name)], (format.group, :))[j,:]
-            Base.write(io, hton.(value))
+            write(io, hton.(value))
         end
         #  Pad last block with zeros
         padblock(io, format)
@@ -127,7 +127,7 @@ function verify!(::Type{Random}, cards::Cards, format::DataFormat,
     if haskey(mankeys, "GCOUNT") && (format.group != mankeys["GCOUNT"])
         setindex!(cards, format.group, "GCOUNT")
         println("Warning: GCOUNT set to $(format.group)")
-    end    
+    end
     cards
 end
 
@@ -306,7 +306,7 @@ function create_data(::Type{Random}, format::DataFormat,
     data
 end
 
-function read(io::IO, field::RandomField, format::DataFormat, begpos::Integer;
+function Base.read(io::IO, field::RandomField, format::DataFormat, begpos::Integer;
     scale=true)
 
     L = sizeof(format.type)*(format.param + prod(format.shape))
@@ -317,27 +317,27 @@ function read(io::IO, field::RandomField, format::DataFormat, begpos::Integer;
         column = Array{type}(undef, N)
         for j=1:N
             seek(io, begpos + L*(j-1) + M)
-            column[j] = ntoh(Base.read(io, type))
+            column[j] = ntoh(read(io, type))
         end
     else
         column = Array{type}(undef, (N, leng))
         for j=1:N
             seek(io, begpos + L*(j-1) + M)
-            column[j,:] = ntoh.([Base.read(io, type) for k=1:leng])
+            column[j,:] = ntoh.([read(io, type) for k=1:leng])
         end
         column = reshape(column, (N, shape...))
     end
     #  No missing values
     scale ? field.zero .+ field.scale.*column : column
-end 
+end
 
-function read(io::IO, field::RandomField; scale=true)
+function Base.read(io::IO, field::RandomField; scale=true)
 
     name, type, leng, shape = field.name, field.type, field.leng, field.shape
     if leng == 1
-        value = ntoh(Base.read(io, type))
+        value = ntoh(read(io, type))
     else
-        value = reshape(ntoh.([Base.read(io, type) for j=1:leng]), shape)
+        value = reshape(ntoh.([read(io, type) for j=1:leng]), shape)
     end
     #  No missing values
     scale ? field.zero .+ field.scale.*value : value
