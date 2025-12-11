@@ -1,6 +1,6 @@
 ####    Image HDU functions
 
-function read(io::IO, ::Type{Image}, format::DataFormat,
+function Base.read(io::IO, ::Type{Image}, format::DataFormat,
     fields::ImageField; scale=true, kwds...)
 
     begpos = position(io)
@@ -25,13 +25,13 @@ function read(io::IO, ::Type{Image}, format::DataFormat,
     data
 end
 
-function write(io::IO, ::Type{Image}, data::Nothing, format::DataFormat,
+function Base.write(io::IO, ::Type{Image}, data::Nothing, format::DataFormat,
     fields::ImageField; kwds...)
 end
 
-function write(io::IO, ::Type{Image}, data::AbstractArray,
+function Base.write(io::IO, ::Type{Image}, data::AbstractArray,
         format::DataFormat, fields::ImageField; kwds...)
-    
+
     if format.leng > 0
         #  data = remove_units(data)
 
@@ -118,7 +118,7 @@ function create_cards!(::Type{Image}, format::DataFormat, fields::ImageField,
     required[3] = popat!(cards, "NAXIS", Card("NAXIS", N))
     required[4:3+N] .= [popat!(cards, "NAXIS$j",
         Card("NAXIS$j", format.shape[j])) for j = 1:N]
-    
+
     #  Append remaining cards in deck, but first remove the END card
     popat!(cards, "END")
     M = length(cards)

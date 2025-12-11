@@ -13,7 +13,7 @@ export Invalid, Value
 export Primary, Conform, Random, Image, Table, Bintable, ZImage, ZTable
 export IUEImage, A3DTable, Foreign, Dump
 export Card, HDU, fits
-export info, parse, write
+export info, parse
 
 using Printf, Unitful
 

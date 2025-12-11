@@ -9,7 +9,7 @@ struct ImageField <: AbstractField
     dmax::Union{AbstractFloat, Nothing}
 end
 
-function read(io::IO, ::Type{Primary}, format::DataFormat,
+function Base.read(io::IO, ::Type{Primary}, format::DataFormat,
     fields::ImageField; scale=true, kwds...)
 
     begpos = position(io)
@@ -34,11 +34,11 @@ function read(io::IO, ::Type{Primary}, format::DataFormat,
     data
 end
 
-function write(io::IO, ::Type{Primary}, data::Nothing, format::DataFormat,
+function Base.write(io::IO, ::Type{Primary}, data::Nothing, format::DataFormat,
     fields::ImageField; kwds...)
 end
 
-function write(io::IO, ::Type{Primary}, data::AbstractArray,
+function Base.write(io::IO, ::Type{Primary}, data::AbstractArray,
     format::DataFormat, fields::ImageField; kwds...)
 
     if format.leng > 0
@@ -147,12 +147,12 @@ function create_data(::Type{Primary}, format::DataFormat, ::ImageField;
     length(format.shape) > 0 ? zeros(format.type, format.shape) : nothing
 end
 
-function read(io::IO, format::DataFormat, fields::ImageField)
+function Base.read(io::IO, format::DataFormat, fields::ImageField)
 
     M, N, shape = sizeof(format.type), format.leng, format.shape
     #  Or preallocate array and use read!
     data = reshape(ntoh.(
-        reinterpret(format.type, Base.read(io, M*N))), shape)
+        reinterpret(format.type, read(io, M*N))), shape)
     #  Assign missing values
     if !isnothing(fields.miss)
         data[data .== fields.miss] .= missing
@@ -160,7 +160,7 @@ function read(io::IO, format::DataFormat, fields::ImageField)
     data
 end
 
-function write(io::IO, data::AbstractArray, fields::ImageField)
+function Base.write(io::IO, data::AbstractArray, fields::ImageField)
     #  Assign missing values
     if !isnothing(fields.miss)
         data[data .== missing] .= fields.miss

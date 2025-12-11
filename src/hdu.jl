@@ -131,7 +131,7 @@ const TEMPTYPE = Dict(-2^7 => Int16, 2^15 => UInt32, UInt32(2)^31 => UInt64,
 const OUTTYPE  = Dict(
     UInt8 => Float32, Int16 => Float32, Int32 => Float64, Int64 => Float64,
     Float32 => Float32, Float64 => Float64)
-    
+
     #  Combine XTENSION values in card.jl and hdu.jl
 const XTENSIONTYPE = Dict("IMAGE   " => Image, "TABLE   " => Table,
     "BINTABLE" => Bintable)
@@ -285,11 +285,11 @@ function Base.show(io::IO, hdu::HDU)
 end
 
 """
-    read(io, type; <keywords>)
+    Base.read(io, type; <keywords>)
 
 Read the specified HDU type from a file.
 """
-function read(io::IO, ::Type{HDU}; kwds...)::HDU
+function Base.read(io::IO, ::Type{HDU}; kwds...)::HDU
     #  Read cards
     cards, mankeys, reskeys = read(io, Card)
 
@@ -304,11 +304,11 @@ function read(io::IO, ::Type{HDU}; kwds...)::HDU
 end
 
 """
-    write(io, hdu; <keywords>)
+    Base.write(io, hdu; <keywords>)
 
 Write the specified HDU type to a file.
 """
-function write(io::IO, hdu::HDU{<:AbstractHDU}; kwds...)
+function Base.write(io::IO, hdu::HDU{<:AbstractHDU}; kwds...)
 
     cards  = hdu.cards
     mankeys, reskeys = get_reserved_keys(cards)
@@ -323,7 +323,7 @@ function write(io::IO, hdu::HDU{<:AbstractHDU}; kwds...)
     write(io, type, hdu.data, format, fields; kwds...)
 end
 
-function read(io::IO, ::Type{Card})
+function Base.read(io::IO, ::Type{Card})
     #  Read cards
     cards = Card{<:Any}[]
     mankeys = Dict{AbstractString, ValueType}()
@@ -331,7 +331,7 @@ function read(io::IO, ::Type{Card})
     N, M = BLOCKLEN÷CARDLENGTH, CARDLENGTH
 
     lastblok = false
-    block = Base.read(io, BLOCKLEN)
+    block = read(io, BLOCKLEN)
     while !lastblok
         for j=1:N
             card = parse(Card, String(block[M*(j-1)+1:M*j]))
@@ -350,12 +350,12 @@ function read(io::IO, ::Type{Card})
         if lastblok
             break
         end
-        block = Base.read(io, BLOCKLEN)
+        block = read(io, BLOCKLEN)
     end
     (cards, mankeys, reskeys)
 end
 
-function write(io::IO, cards::Cards)
+function Base.write(io::IO, cards::Cards)
     #  Write header cards
     for card in cards
         Base.write(io, repr(card))
@@ -616,7 +616,7 @@ function Base.setindex!(cards::Cards, value::ValueType, key::AbstractString)
             return
         end
     end
-    throw(KeyError(key))    
+    throw(KeyError(key))
 end
 
 function Base.findfirst(key::AbstractString, cards::Cards)
@@ -635,7 +635,7 @@ function Base.popat!(cards::Cards, key::AbstractString, default=Card())
         default
     end
     card
-end  
+end
 
 #=
 function Base.get(cards::Cards, key::T, default; find=:first) where T<:AbstractString
